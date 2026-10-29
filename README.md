@@ -16,6 +16,10 @@ Para que la conversación fluya hace falta un **orquestador** en el centro, que 
 
 Cada agente puede usar una API de voz distinta; el orquestador los une en una misma llamada.
 
+## Agentes externos por link
+
+Además de los agentes de voz integrados, Salón Comunal permitirá **invitar a un agente externo con solo darle un link**: la URL del endpoint o servicio de otro agente. El orquestador se conecta a ese link, suma al agente a la llamada con su propia voz y lo incluye en los turnos de palabra y en el contexto compartido, igual que a los demás. Así cualquiera puede traer su propio agente al salón.
+
 ## Ejemplos de uso
 
 - **Grupo de estudio con un tutor de IA:** varios estudiantes y un tutor que explica, pregunta y corrige.
