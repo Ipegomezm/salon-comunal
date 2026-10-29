@@ -16,6 +16,8 @@ from app.orchestrator import Room, RoomError
 
 STATIC = Path(__file__).parent / "static"
 TICK_SECONDS = float(os.environ.get("SALON_TICK", "1.5"))  # pausa entre pasos de los agentes
+# Segundos sin organizador conectado antes de pausar el salón (también es el margen para recargar).
+ORGANIZER_GRACE_SECONDS = float(os.environ.get("SALON_ORGANIZER_GRACE", "60"))
 PORT_HINT = os.environ.get("SALON_URL", "http://localhost:8000")
 
 
@@ -30,7 +32,7 @@ def organizer_token() -> str:
 
 def build_default_room() -> Room:
     """Salón de prueba con tres agentes que esperan aprobación."""
-    room = Room()
+    room = Room(organizer_grace=ORGANIZER_GRACE_SECONDS)
     for style in ("creativa", "critica", "practica"):
         room.add_agent(make_mock(style))
     return room
@@ -92,8 +94,9 @@ def create_app(room: Room | None = None, run_agents: bool = True, token: str | N
         while True:
             await asyncio.sleep(TICK_SECONDS)
             try:
-                if hub.room.agent_tick():
-                    await hub.broadcast()
+                changed = hub.room.check_organizer_presence()
+                if hub.room.agent_tick() or changed or hub.room.seconds_until_pause() is not None:
+                    await hub.broadcast()  # (también actualiza la cuenta regresiva)
             except Exception as e:  # no tumbar el servidor por un agente
                 print("Error en agentes:", e)
 
@@ -136,6 +139,7 @@ def create_app(room: Room | None = None, run_agents: bool = True, token: str | N
                 await ws.send_json({"type": "error", "message": "El link de organizador no es válido. Entras como invitado."})
             pid = hub.room.add_human(first.get("name", ""), organizer=is_org).id
             hub.sockets[ws] = pid
+            hub.room.check_organizer_presence()
             await hub.broadcast()
             while True:
                 msg = await ws.receive_json()
@@ -150,6 +154,7 @@ def create_app(room: Room | None = None, run_agents: bool = True, token: str | N
             hub.sockets.pop(ws, None)
             if pid:
                 hub.room.leave(pid)
+                hub.room.check_organizer_presence()
                 await hub.broadcast()
 
     return app

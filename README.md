@@ -115,6 +115,18 @@ Para apagar el servidor: `Ctrl + C` en la terminal.
 
 - No compartas ese link: quien lo tenga entra como organizador.
 
+### Si no hay organizador conectado
+
+- Si pasa **1 minuto** (60 segundos) sin un organizador conectado, **todo el salón se pausa**:
+  nadie puede hablar ni pedir la palabra (tampoco las personas) y los agentes se detienen.
+- Ese mismo minuto sirve de margen: si recargas la página o se cae tu conexión y vuelves
+  con el link de organizador antes de 1 minuto, no pasa nada.
+- Mientras falta el organizador, la página muestra cuántos segundos quedan. Cuando vuelve,
+  el salón sigue solo.
+- Al prender el servidor también corre ese minuto: entra pronto con tu link.
+- Un agente con rol de organizador no cuenta: hace falta una persona organizadora.
+- Para cambiar el tiempo: `export SALON_ORGANIZER_GRACE=60` (en segundos) antes de prender el servidor.
+
 Ideas para probar en la página:
 
 - Escribe «Rocco, ¿qué riesgos ves?»: solo responde Rocco.
@@ -164,6 +176,8 @@ Cómo fluye todo:
     El servidor revisa estas reglas en cada acción, no solo esconde los botones.
   - Un agente nuevo queda **pendiente** hasta que el organizador lo aprueba. Pendiente
     no puede hablar ni leer la conversación.
+  - **Pausa sin organizador:** si no hay un organizador (persona) conectado durante 60 segundos,
+    todo el salón se pausa hasta que vuelva (`check_organizer_presence` en `room.py`).
   - **Modo normal** por defecto. El **modo rápido** solo con autorización de un organizador que sea persona;
     mientras nadie decide, el pedido cuenta como negado. Aun en modo rápido, todo
     queda en la transcripción. Una persona puede devolver al agente al modo normal.

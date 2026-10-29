@@ -32,4 +32,6 @@ input, select { font-size: 1em; padding: 6px; }
 #transcripcion li.rapido .texto { font-family: monospace; }
 #form-mensaje { display: flex; gap: 8px; margin-top: 10px; }
 #form-mensaje input { flex: 1; }
+#aviso-pausa { margin: 12px 20px 0; padding: 10px 14px; border-radius: 8px; font-weight: bold; background: #fff4c2; border: 2px solid #e2b400; }
+#aviso-pausa.pausa { background: #ffdede; border-color: #b23b3b; }
 #error { color: #b23b3b; min-height: 1.2em; margin: 6px 0 0; }

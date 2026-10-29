@@ -6,7 +6,9 @@ sepan qué hacen y dicen los agentes (transparencia).
 from __future__ import annotations
 
 import itertools
+import time
 from dataclasses import dataclass
+from typing import Callable
 
 from . import context as ctx
 from .context import SharedContext
@@ -31,9 +33,23 @@ class ModeRequest:
                 "status": self.status, "decided_by": self.decided_by}
 
 
+# Si no hay un organizador (persona) conectado durante este tiempo, el salón se pausa.
+# Es también el margen para recargar la página o si se cae la conexión.
+DEFAULT_ORGANIZER_GRACE_SECONDS = 60.0
+
+
 class Room:
-    def __init__(self, name: str = "Salón principal") -> None:
+    def __init__(
+        self,
+        name: str = "Salón principal",
+        organizer_grace: float = DEFAULT_ORGANIZER_GRACE_SECONDS,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
         self.name = name
+        self.organizer_grace = organizer_grace
+        self.clock = clock
+        self.paused = False
+        self._organizer_absent_since: float | None = clock()  # al arrancar aún no hay organizador
         self.registry = Registry()
         self.turns = TurnManager()
         self.context = SharedContext()
@@ -70,6 +86,48 @@ class Room:
 
     def organizers(self) -> list[Participant]:
         return [p for p in self.registry.active() if p.organizer]
+
+    def _require_not_paused(self) -> None:
+        if self.paused:
+            raise RoomError("El salón está en pausa porque no hay un organizador conectado. "
+                            "Se reanuda cuando vuelva.")
+
+    # ---------- pausa si no hay organizador ----------
+    def human_organizers_present(self) -> bool:
+        return any(p.is_human for p in self.organizers())
+
+    def seconds_until_pause(self) -> float | None:
+        """Segundos que faltan para la pausa (None si hay organizador o ya está pausado)."""
+        if self.paused or self._organizer_absent_since is None:
+            return None
+        return max(0.0, self.organizer_grace - (self.clock() - self._organizer_absent_since))
+
+    def check_organizer_presence(self) -> bool:
+        """Revisa si hay un organizador (persona) conectado. Devuelve True si algo cambió.
+
+        - Sin organizador: empieza a contar. Al pasar el margen (60 s por defecto), TODO el
+          salón se pausa: nadie habla ni pide la palabra, personas incluidas, y los agentes se detienen.
+        - Si un organizador vuelve dentro del margen (por ejemplo, recargó la página), no pasa nada.
+        - Si vuelve después, el salón se reanuda.
+        """
+        now = self.clock()
+        if self.human_organizers_present():
+            was_waiting = self._organizer_absent_since is not None
+            self._organizer_absent_since = None
+            if self.paused:
+                self.paused = False
+                self._log(ctx.SYSTEM, "Volvió un organizador. El salón sigue.")
+                return True
+            return was_waiting
+        if self._organizer_absent_since is None:
+            self._organizer_absent_since = now
+            return True
+        if not self.paused and now - self._organizer_absent_since >= self.organizer_grace:
+            self.paused = True
+            self._log(ctx.SYSTEM, f"No hay un organizador conectado desde hace "
+                                  f"{int(self.organizer_grace)} segundos. El salón queda en pausa.")
+            return True
+        return False
 
     def _agent(self, pid: str) -> Participant:
         p = self._get(pid)
@@ -122,6 +180,7 @@ class Room:
 
     def add_agent(self, adapter, added_by: str | None = None) -> Participant:
         """Agrega un agente. Queda PENDIENTE hasta que una persona lo apruebe."""
+        self._require_not_paused()
         who = "El salón"
         if added_by is not None:
             who = self._human(added_by).name
@@ -170,6 +229,7 @@ class Room:
             self._log(ctx.TURN, f"{self._get(sp).name} tiene la palabra.")
 
     def request_floor(self, pid: str) -> bool:
+        self._require_not_paused()
         p = self._active(pid)
         try:
             granted = self.turns.request(pid)
@@ -200,6 +260,7 @@ class Room:
 
     def grant_floor(self, target: str, by: str) -> None:
         """Una persona le da la palabra a alguien (solo si nadie la tiene)."""
+        self._require_not_paused()
         human = self._human(by)
         t = self._active(target)
         try:
@@ -211,6 +272,7 @@ class Room:
 
     def interrupt(self, pid: str) -> None:
         """Solo una persona puede interrumpir, y solo a un agente."""
+        self._require_not_paused()
         human = self._human(pid)
         sp = self.turns.speaker
         if sp is None:
@@ -227,6 +289,7 @@ class Room:
 
     def say(self, pid: str, text: str, mode: Mode | str = Mode.NORMAL) -> None:
         """Hablar. Requiere tener la palabra. El modo rápido requiere autorización."""
+        self._require_not_paused()
         p = self._active(pid)
         text = (text or "").strip()
         if not text:
@@ -247,6 +310,7 @@ class Room:
         - Si la tiene un agente, la persona lo interrumpe.
         - Si la tiene otra persona, debe esperar su turno.
         """
+        self._require_not_paused()
         self._human(pid)
         if not (text or "").strip():
             raise RoomError("El mensaje está vacío.")
@@ -264,6 +328,7 @@ class Room:
 
     # ---------- modos de comunicación ----------
     def request_fast_mode(self, agent_id: str, reason: str) -> ModeRequest:
+        self._require_not_paused()
         agent = self._active(agent_id)
         if not agent.is_agent:
             raise RoomError("Solo los agentes piden el modo rápido.")
@@ -321,6 +386,7 @@ class Room:
 
     # ---------- trabajo autónomo ----------
     def start_autonomous(self, agent_id: str, task: str, by: str) -> None:
+        self._require_not_paused()
         human = self._human(by)
         agent = self._active(agent_id)
         if not agent.is_agent:
@@ -334,6 +400,7 @@ class Room:
                                   f"No reportará cada paso.")
 
     def end_autonomous(self, agent_id: str, by: str) -> None:
+        self._require_not_paused()
         actor = self._active(by)
         agent = self._agent(agent_id)
         if actor.is_agent and actor.id != agent_id:
@@ -363,6 +430,8 @@ class Room:
         2) Si un agente tiene la palabra: dice lo suyo y la suelta.
         3) Si no: cada agente activo decide si pide la palabra.
         """
+        if self.paused:
+            return False
         changed = False
         # 1) Los agentes en fila revisan si su pedido sigue siendo relevante.
         for agent_id in list(self.turns.queue):
@@ -417,6 +486,8 @@ class Room:
                 pass
         return {
             "you_are_organizer": is_org,
+            "paused": self.paused,
+            "seconds_until_pause": self.seconds_until_pause(),
             "you_can_decide_fast_mode": can_decide_fast,
             "room": self.name,
             "participants": [p.to_dict() for p in self.registry.all()

@@ -30,6 +30,16 @@ function el(tag, attrs = {}, ...hijos) {
 
 function dibujar() {
   const s = estado;
+  const aviso = $("aviso-pausa");
+  if (s.paused) {
+    aviso.hidden = false; aviso.className = "pausa";
+    aviso.textContent = "El salón está en pausa: no hay un organizador conectado. Sigue cuando vuelva.";
+  } else if (s.seconds_until_pause !== null) {
+    aviso.hidden = false; aviso.className = "";
+    aviso.textContent = "No hay un organizador conectado. El salón se pausa en " + Math.ceil(s.seconds_until_pause) + " segundos.";
+  } else {
+    aviso.hidden = true;
+  }
   $("palabra").textContent = s.speaker ? nombreDe(s.speaker) + (s.speaker === yo ? " (tú)" : "") : "Nadie";
   $("fila").textContent = s.queue.length ? "Esperan turno: " + s.queue.map(nombreDe).join(", ") : "Nadie espera turno.";
 
