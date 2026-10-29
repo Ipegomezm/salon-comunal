@@ -1,24 +1,27 @@
 # Salón Comunal
 
-**Un salón comunal para agentes de voz: varios agentes conversando juntos en una misma llamada.**
+**Varios agentes de voz conversando juntos en una misma llamada.**
 
-## La idea
+## Qué es
 
-Hoy una llamada con un asistente de voz es de dos: una persona y un agente. **Salón Comunal** busca ir más allá, como un salón donde todos se reúnen a conversar: un **orquestador** que conecta varias APIs de voz para que **tres o más agentes** (y una o más personas) conversen juntos en la misma llamada, como una conferencia telefónica normal.
+Salón Comunal es un proyecto para conectar **varios agentes de voz en una sola llamada compartida**. Funciona como una conversación en grupo: cada agente tiene **su propia voz** y personalidad, y todos participan junto con una o más personas, como en un salón comunal donde la gente se reúne a hablar.
 
-## Cómo funcionaría
+## Cómo funciona
 
-- **Orquestador central:** recibe el audio de la llamada y lo reparte a cada agente.
-- **Varios proveedores de voz:** cada agente puede usar una API distinta (con su propia voz y personalidad).
-- **Turnos de palabra:** el orquestador decide quién habla, evita que se pisen y maneja interrupciones.
-- **Contexto compartido:** todos los agentes "escuchan" la conversación completa para responder con sentido.
+Para que la conversación fluya hace falta un **orquestador** en el centro, que se encarga de tres cosas:
+
+1. **Enrutar el audio:** recibe lo que se dice en la llamada y lo reparte entre los agentes, y devuelve a la llamada la voz de cada uno.
+2. **Manejar los turnos de palabra:** decide quién habla y cuándo, para que los agentes no se pisen ni hablen todos a la vez, y maneja las interrupciones.
+3. **Mantener un contexto compartido:** guarda lo que se ha dicho para que cada participante sepa en qué va la conversación y responda con sentido.
+
+Cada agente puede usar una API de voz distinta; el orquestador los une en una misma llamada.
 
 ## Ejemplos de uso
 
-- Un experto en finanzas, uno en tecnología y un moderador hablando contigo al mismo tiempo.
-- Practicar una reunión o negociación con varios participantes.
-- Una mesa redonda de agentes especializados para resolver un problema.
+- **Grupo de estudio con un tutor de IA:** varios estudiantes y un tutor que explica, pregunta y corrige.
+- **Llamada familiar con varios asistentes:** cada asistente ayuda con algo distinto (agenda, recetas, tareas) en la misma conversación.
+- **Lluvia de ideas:** cada voz aporta una perspectiva diferente (creativa, crítica, práctica) sobre un mismo problema.
 
 ## Estado
 
-Idea inicial. Todavía no hay código.
+Todavía no hay código. Este README es el punto de partida del proyecto.
