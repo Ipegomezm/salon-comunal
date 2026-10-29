@@ -18,6 +18,8 @@ STATIC = Path(__file__).parent / "static"
 TICK_SECONDS = float(os.environ.get("SALON_TICK", "1.5"))  # pausa entre pasos de los agentes
 # Segundos sin organizador conectado antes de pausar el salón (también es el margen para recargar).
 ORGANIZER_GRACE_SECONDS = float(os.environ.get("SALON_ORGANIZER_GRACE", "60"))
+# Habla simulada: segundos por letra que un agente conserva la palabra mientras "habla".
+SPEECH_SECONDS_PER_CHAR = float(os.environ.get("SALON_SPEECH_RATE", "0.055"))
 PORT_HINT = os.environ.get("SALON_URL", "http://localhost:8000")
 
 
@@ -32,7 +34,7 @@ def organizer_token() -> str:
 
 def build_default_room() -> Room:
     """Salón de prueba con tres agentes que esperan aprobación."""
-    room = Room(organizer_grace=ORGANIZER_GRACE_SECONDS)
+    room = Room(organizer_grace=ORGANIZER_GRACE_SECONDS, speech_seconds_per_char=SPEECH_SECONDS_PER_CHAR)
     for style in ("creativa", "critica", "practica"):
         room.add_agent(make_mock(style))
     return room

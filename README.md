@@ -56,7 +56,7 @@ Además del audio, Salón Comunal tendrá una vista en pantalla parecida a una v
 
 ## Estado
 
-Etapa 1 lista: prototipo local en texto (ver «Cómo correrlo» abajo). Este README sigue siendo la especificación del proyecto.
+Etapas 1 y 2 listas: prototipo local en texto con vista de recuadros (ver «Cómo correrlo» abajo). Este README sigue siendo la especificación del proyecto.
 
 ---
 
@@ -134,6 +134,7 @@ Ideas para probar en la página:
 - Escribe algo con «truco» o «saltar la regla»: Tina reporta el vacío al salón.
 - Escribe «gracias» mientras los agentes esperan turno: retiran su pedido.
 - Usa «Mandar a trabajar solo» y después «Pedir que vuelva»: el agente cuenta su resultado.
+- Mira los recuadros arriba de la conversación: amarillo que respira = pide la palabra; ondas = está hablando.
 
 ## Arquitectura
 
@@ -148,9 +149,11 @@ app/
     base.py           Interfaz común de un agente (AgentAdapter) y de su voz (VoiceBackend)
     mock.py           Agentes de prueba con reglas fijas: creativa, crítica y práctica
   server.py           Servidor FastAPI: página web + WebSocket
-  static/             Página simple en HTML, CSS y JavaScript
+  static/             Página en HTML, CSS y JavaScript
+    tiles.js          Recuadros tipo Zoom (etapa 2): luz amarilla, ondas de sonido, niveles de voz
 tests/                Pruebas con pytest
 scripts/captura.py    Toma una captura de la página (opcional)
+scripts/captura_etapa2.py  Captura de los recuadros (opcional)
 docs/                 Capturas
 ```
 
@@ -186,6 +189,19 @@ Cómo fluye todo:
     en la conversación hasta que vuelve y cuenta su resultado.
 - Cada **1,5 segundos** el servidor le da un paso a los agentes (se cambia con la variable
   `SALON_TICK`): quien tiene la palabra habla; los demás deciden si piden o retiran su pedido.
+- **Recuadros tipo Zoom (etapa 2):** sin cámara ni video. Cada persona y cada agente tiene
+  un recuadro con sus iniciales, su nombre y su rol.
+  - **Pide la palabra:** el recuadro brilla en amarillo y la luz sube y baja despacio, como
+    si respirara. Si retira su pedido, la luz se apaga.
+  - **Habla:** el recuadro muestra ondas de sonido. Como todavía no hay audio, las ondas
+    siguen un nivel simulado a partir del texto que se está "diciendo" (las vocales suben más).
+    Un agente conserva la palabra mientras "habla" (unos 0,055 segundos por letra, entre
+    1,2 y 9 segundos; se cambia con `SALON_SPEECH_RATE`).
+  - **Espera aprobación:** recuadro gris con borde de rayas. **En pausa:** todos los recuadros en gris.
+  - Si la computadora pide menos movimiento (`prefers-reduced-motion`), la luz amarilla
+    queda fija y las ondas quietas.
+  - Para la etapa 3: el audio real solo tiene que llamar a
+    `Recuadros.ponerNivel(idParticipante, nivel)` (nivel de 0 a 1) y las ondas lo siguen.
 - **Agentes conectables:** cada agente implementa `AgentAdapter`. Para la voz, cada uno
   tendrá su propio `VoiceBackend` (pasar voz a texto y texto a voz). Así cada agente
   puede usar un proveedor de voz distinto sin cambiar el orquestador.
@@ -194,8 +210,9 @@ Cómo fluye todo:
 
 1. **Prototipo en texto** (hecho): orquestador con turnos, aprobación de agentes,
    contexto compartido, modos de comunicación y página simple. Agentes de prueba sin claves.
-2. **Vista tipo Zoom:** un recuadro por participante, brillo amarillo que respira al pedir
-   la palabra, botón para retirar el pedido y ondas de sonido al hablar.
+2. **Vista tipo Zoom** (hecho, versión simple): un recuadro por participante, brillo
+   amarillo que respira al pedir la palabra y se apaga al retirar el pedido, y ondas de
+   sonido (simuladas) al hablar. El diseño se pule más adelante.
 3. **Voz real:** conectar proveedores de voz (a elegir) usando `VoiceBackend`, y agentes
    de verdad en vez de los de prueba.
 4. **Invitaciones:** link para compartir (con el salón en internet) y luego llamadas por Telegram.

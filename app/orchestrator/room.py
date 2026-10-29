@@ -44,8 +44,13 @@ class Room:
         name: str = "Salón principal",
         organizer_grace: float = DEFAULT_ORGANIZER_GRACE_SECONDS,
         clock: Callable[[], float] = time.monotonic,
+        speech_seconds_per_char: float = 0.0,
     ) -> None:
         self.name = name
+        # Habla simulada (sin audio todavía): un agente conserva la palabra mientras "dice"
+        # su texto. 0 = suelta la palabra de inmediato (útil en pruebas).
+        self.speech_seconds_per_char = speech_seconds_per_char
+        self.speaking: dict | None = None   # {"pid", "entry_id", "started", "until"}
         self.organizer_grace = organizer_grace
         self.clock = clock
         self.paused = False
@@ -86,6 +91,12 @@ class Room:
 
     def organizers(self) -> list[Participant]:
         return [p for p in self.registry.active() if p.organizer]
+
+    def speech_duration(self, text: str) -> float:
+        """Cuánto dura "decir" un texto en la habla simulada (en segundos)."""
+        if self.speech_seconds_per_char <= 0:
+            return 0.0
+        return min(max(len(text) * self.speech_seconds_per_char, 1.2), 9.0)
 
     def _require_not_paused(self) -> None:
         if self.paused:
@@ -427,7 +438,8 @@ class Room:
         """Un paso de los agentes. Devuelve True si algo cambió.
 
         1) Los agentes en fila pueden retirar su pedido si ya no es relevante.
-        2) Si un agente tiene la palabra: dice lo suyo y la suelta.
+        2) Si un agente tiene la palabra: dice lo suyo y la suelta (si la habla simulada
+           está activa, la suelta cuando termina de "hablar").
         3) Si no: cada agente activo decide si pide la palabra.
         """
         if self.paused:
@@ -441,6 +453,14 @@ class Room:
 
         # 2) Si un agente tiene la palabra: habla y la suelta.
         sp = self.turns.speaker
+        if self.speaking and self.speaking["pid"] != sp:
+            self.speaking = None   # lo interrumpieron o salió
+        if sp and self.speaking:
+            if self.clock() < self.speaking["until"]:
+                return changed     # sigue "hablando": conserva la palabra
+            self.speaking = None
+            self.release_floor(sp)
+            return True
         if sp and self._get(sp).is_agent:
             agent = self._get(sp)
             adapter = self.adapters[sp]
@@ -457,6 +477,12 @@ class Room:
             if reply.text:
                 try:
                     self.say(sp, reply.text, reply.mode)
+                    duration = self.speech_duration(reply.text)
+                    if duration > 0:
+                        now = self.clock()
+                        self.speaking = {"pid": sp, "entry_id": self.context.entries[-1].id,
+                                         "started": now, "until": now + duration}
+                        return True   # suelta la palabra cuando termine de "hablar"
                 except RoomError:
                     pass  # ya quedó registrado en la transcripción
             if self.turns.speaker == sp:
@@ -488,6 +514,7 @@ class Room:
             "you_are_organizer": is_org,
             "paused": self.paused,
             "seconds_until_pause": self.seconds_until_pause(),
+            "speech_seconds_per_char": self.speech_seconds_per_char,
             "you_can_decide_fast_mode": can_decide_fast,
             "room": self.name,
             "participants": [p.to_dict() for p in self.registry.all()

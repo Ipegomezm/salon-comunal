@@ -42,3 +42,44 @@ def test_queued_agents_withdraw_when_no_longer_relevant(full_room):
     withdrawals = [e for e in r.context.entries if "retiró su pedido" in e.text]
     assert len(withdrawals) >= 1
     assert r.turns.queue == []
+
+
+def test_simulated_speech_keeps_floor_until_done():
+    from app.agents.mock import make_mock
+    from app.orchestrator import Room
+
+    class Clock:
+        t = 0.0
+        def __call__(self):
+            return self.t
+    clock = Clock()
+    r = Room(clock=clock, speech_seconds_per_char=0.05)
+    felipe = r.add_human("Felipe", organizer=True)
+    for style in ("creativa", "critica"):
+        a = r.add_agent(make_mock(style), added_by=felipe.id)
+        r.approve_agent(a.id, by=felipe.id)
+    r.speak_now(felipe.id, "¿Ideas?")
+    r.agent_tick()                      # piden la palabra
+    first = r.turns.speaker
+    r.agent_tick()                      # el primero habla
+    assert r.speaking and r.speaking["pid"] == first
+    duration = r.speaking["until"] - r.speaking["started"]
+    assert 1.2 <= duration <= 9.0
+    clock.t = duration - 0.1
+    r.agent_tick()
+    assert r.turns.speaker == first     # sigue hablando: nadie más habla
+    clock.t = duration + 0.1
+    r.agent_tick()
+    assert r.turns.speaker != first and r.speaking is None
+
+
+def test_interrupting_simulated_speech(full_room):
+    r, felipe, agents = full_room
+    r.speech_seconds_per_char = 1.0     # habla larguísima
+    r.speak_now(felipe.id, "¿Ideas?")
+    r.agent_tick()
+    r.agent_tick()
+    assert r.speaking is not None
+    r.interrupt(felipe.id)
+    r.agent_tick()
+    assert r.speaking is None and r.turns.speaker == felipe.id

@@ -21,7 +21,7 @@ button { font-size: .95em; padding: 6px 12px; margin: 3px 3px 0 0; border-radius
 button.si { background: #3a9a4a; color: #fff; border-color: #3a9a4a; }
 button.no { background: #b23b3b; color: #fff; border-color: #b23b3b; }
 input, select { font-size: 1em; padding: 6px; }
-#transcripcion { list-style: none; padding: 0; height: 52vh; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; margin: 0; }
+#transcripcion { list-style: none; padding: 0; height: 40vh; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; margin: 0; }
 #transcripcion li { padding: 6px 10px; border-bottom: 1px solid #f0f0f0; }
 #transcripcion li.mensaje .autor { font-weight: bold; }
 #transcripcion li.mensaje.humano { background: #f3f8ff; }
@@ -35,3 +35,43 @@ input, select { font-size: 1em; padding: 6px; }
 #aviso-pausa { margin: 12px 20px 0; padding: 10px 14px; border-radius: 8px; font-weight: bold; background: #fff4c2; border: 2px solid #e2b400; }
 #aviso-pausa.pausa { background: #ffdede; border-color: #b23b3b; }
 #error { color: #b23b3b; min-height: 1.2em; margin: 6px 0 0; }
+
+/* ---------- Etapa 2: recuadros tipo Zoom ---------- */
+#recuadros { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin: 6px 0 4px; }
+.recuadro {
+  position: relative; background: #24303c; color: #fff; border-radius: 12px; padding: 12px 10px 10px;
+  text-align: center; border: 3px solid transparent; min-height: 150px;
+}
+.recuadro .cara { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 6px; display: grid; place-items: center; }
+.recuadro .iniciales { font-size: 1.5em; font-weight: bold; }
+.recuadro .nombre { font-weight: bold; }
+.recuadro .rol { font-size: .8em; opacity: .8; }
+.recuadro .estado { font-size: .85em; min-height: 1.2em; margin-top: 2px; }
+
+/* Pide la palabra: luz amarilla que "respira" */
+.recuadro.pide { border-color: #f2c200; animation: respirar 2.6s ease-in-out infinite; }
+.recuadro.pide .estado { color: #ffe27a; font-weight: bold; }
+@keyframes respirar {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(242, 194, 0, .25); }
+  50%      { box-shadow: 0 0 26px 10px rgba(242, 194, 0, .85); }
+}
+
+/* Tiene la palabra / está hablando */
+.recuadro.tiene { border-color: #4cc26a; }
+.recuadro .ondas { position: absolute; left: 0; right: 0; top: 46px; height: 46px; display: none;
+  justify-content: center; align-items: center; gap: 4px; pointer-events: none; }
+.recuadro.hablando .ondas { display: flex; }
+.recuadro.hablando .cara { opacity: .35; }
+.recuadro .ondas i { display: block; width: 7px; height: 100%; background: #7ee29a; border-radius: 3px;
+  transform: scaleY(.2); transform-origin: center; }
+
+/* Pendiente de aprobación y pausa */
+.recuadro.pendiente { background: #5b6470; border: 3px dashed #c9ced6; opacity: .75; }
+.recuadro.pendiente .estado { font-weight: bold; }
+.recuadro.pausa { filter: grayscale(1); opacity: .6; }
+.recuadro.solo { background: #2c3e6b; }
+
+/* Si la persona pidió menos movimiento: luz fija, sin respirar */
+@media (prefers-reduced-motion: reduce) {
+  .recuadro.pide { animation: none; box-shadow: 0 0 16px 6px rgba(242, 194, 0, .7); }
+}

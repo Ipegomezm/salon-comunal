@@ -2,6 +2,7 @@
 let ws = null;
 let yo = null;
 let estado = null;
+let ultimoMensajeVisto = null;   // para animar solo los mensajes nuevos
 // Si la página se abrió con el link secreto (?organizador=...), guardamos la clave
 // y la quitamos de la barra de direcciones para que no quede a la vista.
 const params = new URLSearchParams(location.search);
@@ -92,6 +93,16 @@ function dibujar() {
       el("button", { class: "si", onclick: () => enviar("decide_mode", { request_id: r.id, approve: true }) }, "Autorizar"),
       el("button", { class: "no", onclick: () => enviar("decide_mode", { request_id: r.id, approve: false }) }, "Negar"),
     ));
+  }
+
+  Recuadros.actualizar($("recuadros"), s, yo);
+  const mensajes = s.transcript.filter((e) => e.kind === "mensaje");
+  if (ultimoMensajeVisto === null) {
+    ultimoMensajeVisto = mensajes.length ? mensajes[mensajes.length - 1].id : 0;
+  } else {
+    for (const e of mensajes) {
+      if (e.id > ultimoMensajeVisto) { Recuadros.alHablar(e, s.speech_seconds_per_char); ultimoMensajeVisto = e.id; }
+    }
   }
 
   const t = $("transcripcion");
