@@ -37,6 +37,7 @@ Tanto los agentes como las personas forman parte de los **turnos de palabra** y 
 - **Modo normal (humano):** por defecto, los agentes siempre hablan a una velocidad y en un lenguaje que las personas pueden entender, para que nadie en el salón se quede por fuera.
 - **Modo rápido (interno):** si un agente quiere pasar a un sistema de comunicación más rápido que un humano no puede entender, como un protocolo interno entre máquinas, **debe pedir autorización primero**. Sin esa aprobación, sigue en el modo normal.
 - **Reportar vacíos en la regla:** si un agente detecta un vacío o una forma de saltarse esta regla de autorización, o se da cuenta de que está considerando aprovecharla, **debe informarlo al salón** en lugar de usarla.
+- **Trabajo autónomo:** un agente puede recibir la instrucción de irse a trabajar por su cuenta. En ese caso no necesita reportar cada paso ni cada pensamiento, igual que una persona que a veces trabaja sola. Las reglas de transparencia siguen valiendo para pasar al modo rápido y para reportar vacíos, pero el trabajo autónomo de rutina no requiere actualizaciones constantes.
 
 ## Interfaz de video
 
