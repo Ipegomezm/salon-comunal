@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Salón Comunal</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header><h1>Salón Comunal</h1><span id="estado-conexion">Sin conectar</span></header>
+
+  <section id="entrar">
+    <h2>Entrar al salón</h2>
+    <form id="form-entrar">
+      <label for="nombre">Tu nombre</label>
+      <input id="nombre" autocomplete="name" placeholder="Ej.: Felipe" required>
+      <button type="submit">Entrar</button>
+    </form>
+  </section>
+
+  <main id="salon" hidden>
+    <aside>
+      <h2>Quién tiene la palabra</h2>
+      <p id="palabra" class="grande">Nadie</p>
+      <p id="fila"></p>
+
+      <h2>Participantes</h2>
+      <ul id="participantes"></ul>
+
+      <div id="caja-modos" hidden>
+        <h2>Pedidos de modo rápido</h2>
+        <ul id="modos"></ul>
+      </div>
+
+      <h2>Agregar un agente de prueba</h2>
+      <form id="form-agente">
+        <select id="estilo">
+          <option value="creativa">Creativo</option>
+          <option value="critica">Crítico</option>
+          <option value="practica">Práctico</option>
+        </select>
+        <input id="nombre-agente" placeholder="Nombre (opcional)">
+        <button type="submit">Agregar</button>
+      </form>
+    </aside>
+
+    <section id="conversacion">
+      <h2>Conversación</h2>
+      <ol id="transcripcion"></ol>
+      <p id="error" role="alert"></p>
+      <form id="form-mensaje">
+        <input id="mensaje" placeholder="Escribe tu mensaje…" autocomplete="off">
+        <button type="submit">Enviar</button>
+      </form>
+      <div class="botones">
+        <button id="btn-pedir">Pedir la palabra</button>
+        <button id="btn-retirar">Retirar mi pedido</button>
+        <button id="btn-soltar">Soltar la palabra</button>
+        <button id="btn-interrumpir">Interrumpir al agente</button>
+      </div>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

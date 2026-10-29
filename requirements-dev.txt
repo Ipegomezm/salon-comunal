@@ -1,0 +1,4 @@
+# Dependencias para pruebas (incluye las del servidor)
+-r requirements.txt
+pytest>=8
+httpx>=0.27
