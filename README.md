@@ -16,9 +16,14 @@ Para que la conversación fluya hace falta un **orquestador** en el centro, que 
 
 Cada agente puede usar una API de voz distinta; el orquestador los une en una misma llamada.
 
-## Personas externas con link
+## Quién participa en el salón
 
-Además de los agentes de voz integrados, Salón Comunal permitirá **invitar a personas externas con un link**: una URL que la persona abre para unirse a la llamada. El orquestador la suma a la conversación junto a los agentes, la incluye en los turnos de palabra y en el contexto compartido, y así cualquiera puede entrar al salón sin instalar nada.
+En Salón Comunal participan dos tipos de miembros:
+
+1. **Agentes de voz:** son agentes integrados al salón. Una persona puede agregar o conectar un agente a la conversación, pero **cada agente necesita aprobación antes de entrar** a la llamada.
+2. **Personas externas:** cualquier persona puede participar directamente en el salón comunal uniéndose a la llamada.
+
+Tanto los agentes como las personas forman parte de los **turnos de palabra** y del **contexto compartido**: todos saben qué se ha dicho y hablan por turnos.
 
 ## Ejemplos de uso
 
