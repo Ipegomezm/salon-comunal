@@ -105,7 +105,7 @@ function dibujar() {
     lista.append(li);
   }
 
-  $("rol").textContent = s.you_are_organizer ? "Entraste como organizador" : "Entraste como invitado";
+  $("rol").textContent = s.you_are_organizer ? "Entraste como organizador · " : "Entraste como invitado · ";
   const pendientes = s.mode_requests.filter((r) => r.status === "pendiente");
   $("caja-modos").hidden = !s.you_can_decide_fast_mode || yoFuera || pendientes.length === 0;
   const modos = $("modos");
