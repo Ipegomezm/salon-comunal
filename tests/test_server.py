@@ -122,3 +122,15 @@ def test_bano_over_websocket():
             _state(org)
             m = org.receive_json()
             assert m["type"] == "return_summary"
+
+
+def test_bathroom_notice_env_switch(monkeypatch):
+    import importlib
+    import app.server as server
+    monkeypatch.setenv("SALON_AVISO_BANO", "0")
+    importlib.reload(server)
+    assert server.BATHROOM_NOTICE is False
+    assert server.build_default_room().bathroom_notice is False
+    monkeypatch.delenv("SALON_AVISO_BANO")
+    importlib.reload(server)
+    assert server.BATHROOM_NOTICE is True

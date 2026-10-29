@@ -41,6 +41,9 @@ DEFAULT_AGENT_COOLDOWN_SECONDS = 8.0
 DEFAULT_AGENT_TURN_BUDGET = 6
 # «Baño»: si el organizador se aleja con la página abierta, el salón sigue hasta este límite.
 DEFAULT_BATHROOM_LIMIT_SECONDS = 1500.0   # 25 minutos
+# Aviso grande arriba en los últimos 5 minutos del «Baño» del organizador
+# (valor por defecto pendiente de que Felipe lo confirme).
+BATHROOM_NOTICE_SECONDS = 300.0
 
 
 class Room:
@@ -53,6 +56,7 @@ class Room:
         agent_cooldown_seconds: float = DEFAULT_AGENT_COOLDOWN_SECONDS,
         agent_turn_budget: int = DEFAULT_AGENT_TURN_BUDGET,
         bathroom_limit: float = DEFAULT_BATHROOM_LIMIT_SECONDS,
+        bathroom_notice: bool = True,
     ) -> None:
         self.name = name
         # Freno para que los agentes no conversen sin fin entre ellos:
@@ -79,6 +83,7 @@ class Room:
         self._organizer_absent_since: float | None = clock()  # al arrancar aún no hay organizador
         self._unavailable = True       # sin organizador disponible (se fue o está en «Baño»)
         self.bathroom_limit = bathroom_limit
+        self.bathroom_notice = bathroom_notice   # interruptor del aviso grande (SALON_AVISO_BANO)
         self.registry = Registry()
         self.turns = TurnManager()
         self.context = SharedContext()
@@ -150,6 +155,19 @@ class Room:
         if self._organizer_absent_since is None:
             return None
         return "sin_organizador", max(0.0, self.organizer_grace - (now - self._organizer_absent_since))
+
+    def bathroom_notice_info(self) -> dict | None:
+        """Aviso grande para todos en los últimos 5 minutos del «Baño» del organizador.
+
+        Devuelve {"name", "seconds_left"} o None (si el aviso está apagado o no aplica).
+        """
+        if not self.bathroom_notice:
+            return None
+        pending = self._pending_pause()
+        if not pending or pending[0] != "bano" or pending[1] > BATHROOM_NOTICE_SECONDS:
+            return None
+        who = max(self._connected_human_organizers(), key=lambda p: p.away_since)
+        return {"name": who.name, "seconds_left": pending[1]}
 
     def seconds_until_pause(self) -> float | None:
         """Segundos que faltan para la pausa por falta de organizador conectado
@@ -734,6 +752,7 @@ class Room:
             "participants": [self._participant_view(p) for p in self.registry.all()
                              if p.status in (Status.ACTIVE, Status.PENDING)],
             "bathroom_limit": self.bathroom_limit,
+            "bathroom_notice": self.bathroom_notice_info(),
             "speaker": self.turns.speaker,
             "queue": list(self.turns.queue),
             "mode_requests": [r.to_dict() for r in self.mode_requests.values()] if can_decide_fast else [],

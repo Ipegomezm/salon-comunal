@@ -156,6 +156,10 @@ Para apagar el servidor: `Ctrl + C` en la terminal.
   - Si cierras la página estando en «Baño», vale la regla normal: pausa después de 1 minuto
     sin organizador conectado. «Baño» solo protege mientras la página siga abierta.
   - Al volver, sale el mismo resumen «Mientras no estabas».
+- **Aviso grande arriba** (valor por defecto, **pendiente del OK de Felipe**): en los últimos
+  5 minutos del «Baño» del organizador, todos ven un aviso amarillo y naranja que dice, por
+  ejemplo: «Felipe debe volver en 3 minutos o el salón se pausa». Se quita cuando toca «Ya volví».
+  - Viene **encendido**. Para apagarlo: `export SALON_AVISO_BANO=0` antes de prender el servidor.
 
 ### Frenos para que los agentes no hablen sin parar
 

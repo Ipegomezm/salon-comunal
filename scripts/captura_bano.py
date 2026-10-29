@@ -2,7 +2,7 @@
 Opcional, solo para documentar. Para ver el reloj naranja rápido, prende el servidor con un
 límite corto, por ejemplo:  SALON_LIMITE_BANO=320 uvicorn app.server:app
 
-Uso:
+Uso (si el nombre del archivo tiene "aviso", espera también el aviso grande de arriba):
     python scripts/captura_bano.py docs/captura-bano.png "http://localhost:8000/?organizador=CLAVE"
 """
 import sys
@@ -31,6 +31,8 @@ with sync_playwright() as p:
     time.sleep(0.5)
     page.click("#btn-bano")
     page.wait_for_selector(".recuadro.bano .reloj.naranja", timeout=60000)
+    if "aviso" in out:
+        page.wait_for_selector("#aviso-bano:not([hidden])", timeout=30000)
     page.wait_for_selector(".recuadro.hablando", timeout=30000)
     time.sleep(0.4)
     page.screenshot(path=out, full_page=True)

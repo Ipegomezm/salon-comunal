@@ -92,3 +92,7 @@ input, select { font-size: 1em; padding: 6px; }
 .recuadro.bano .icono-pausa { display: inline; color: #fff; }
 .recuadro .reloj { font-family: monospace; font-size: 1.1em; font-weight: bold; min-height: 1.2em; }
 .recuadro .reloj.naranja { color: #fff; background: #e07b00; border-radius: 6px; display: inline-block; padding: 0 8px; }
+
+/* Aviso grande de «Baño» (últimos 5 minutos) */
+#aviso-bano { margin: 12px 20px 0; padding: 14px 18px; border-radius: 10px; font-size: 1.35em; font-weight: bold;
+  text-align: center; background: #ffcf66; border: 3px solid #e07b00; color: #3a2400; }

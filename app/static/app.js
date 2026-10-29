@@ -3,6 +3,18 @@ let ws = null;
 let yo = null;
 let estado = null;
 let ultimoMensajeVisto = null;   // para animar solo los mensajes nuevos
+let avisoBano = null;            // { name, until } mientras se muestra el aviso grande de «Baño»
+
+function pintarAvisoBano() {
+  const caja = $("aviso-bano");
+  if (!avisoBano) { caja.hidden = true; return; }
+  const seg = Math.max(0, (avisoBano.until - performance.now()) / 1000);
+  const min = Math.ceil(seg / 60);
+  const cuando = seg < 60 ? "menos de 1 minuto" : min === 1 ? "1 minuto" : min + " minutos";
+  caja.textContent = avisoBano.name + " debe volver en " + cuando + " o el salón se pausa.";
+  caja.hidden = false;
+}
+setInterval(pintarAvisoBano, 1000);
 // Si la página se abrió con el link secreto (?organizador=...), guardamos la clave
 // y la quitamos de la barra de direcciones para que no quede a la vista.
 const params = new URLSearchParams(location.search);
@@ -46,6 +58,11 @@ function dibujar() {
   } else {
     aviso.hidden = true;
   }
+  // Aviso grande: el organizador está en «Baño» y faltan 5 minutos o menos para la pausa.
+  avisoBano = s.bathroom_notice
+    ? { name: s.bathroom_notice.name, until: performance.now() + s.bathroom_notice.seconds_left * 1000 }
+    : null;
+  pintarAvisoBano();
   $("palabra").textContent = s.speaker ? nombreDe(s.speaker) + (s.speaker === yo ? " (tú)" : "") : "Nadie";
   $("fila").textContent = s.queue.length ? "Esperan turno: " + s.queue.map(nombreDe).join(", ") : "Nadie espera turno.";
 

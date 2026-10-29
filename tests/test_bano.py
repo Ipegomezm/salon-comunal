@@ -194,3 +194,52 @@ def test_custom_limit():
     r.check_organizer_presence()
     run(r, clock, 121)
     assert r.paused
+
+
+# --- Aviso grande en los últimos 5 minutos del «Baño» del organizador ---
+
+def test_notice_only_in_last_five_minutes():
+    clock = FakeClock()
+    r, felipe, ana, agents = make_room(clock)
+    r.step_away(felipe.id)
+    r.check_organizer_presence()
+    clock.t += 1199                                   # faltan 301 s
+    assert r.snapshot(viewer=ana.id)["bathroom_notice"] is None
+    clock.t += 2                                      # faltan 299 s
+    n = r.snapshot(viewer=ana.id)["bathroom_notice"]
+    assert n["name"] == "Felipe" and n["seconds_left"] == pytest.approx(299)
+    assert r.snapshot(viewer=felipe.id)["bathroom_notice"] is not None   # lo ven todos
+
+
+def test_notice_disappears_on_return():
+    clock = FakeClock()
+    r, felipe, ana, agents = make_room(clock)
+    r.step_away(felipe.id)
+    r.check_organizer_presence()
+    clock.t += 1300
+    assert r.bathroom_notice_info() is not None
+    r.come_back(felipe.id)
+    r.check_organizer_presence()
+    assert r.bathroom_notice_info() is None
+
+
+def test_notice_can_be_turned_off():
+    clock = FakeClock()
+    r, felipe, ana, agents = make_room(clock, bathroom_notice=False)
+    r.step_away(felipe.id)
+    r.check_organizer_presence()
+    clock.t += 1400
+    assert r.bathroom_notice_info() is None
+    assert not r.paused                               # la regla de pausa sigue igual
+
+
+def test_no_notice_for_non_organizer_or_when_paused():
+    clock = FakeClock()
+    r, felipe, ana, agents = make_room(clock)
+    r.step_away(ana.id)
+    clock.t += 1400
+    assert r.bathroom_notice_info() is None
+    r.step_away(felipe.id)
+    r.check_organizer_presence()
+    run(r, clock, 1501)
+    assert r.paused and r.bathroom_notice_info() is None

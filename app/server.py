@@ -25,6 +25,9 @@ AGENT_COOLDOWN_SECONDS = float(os.environ.get("SALON_AGENT_COOLDOWN", "8"))
 AGENT_TURN_BUDGET = int(os.environ.get("SALON_AGENT_BUDGET", "6"))
 # «Baño»: segundos que el organizador puede estar fuera (con la página abierta) antes de pausar el salón.
 BATHROOM_LIMIT_SECONDS = float(os.environ.get("SALON_LIMITE_BANO", "1500"))
+# Aviso grande en los últimos 5 minutos del «Baño» del organizador. Encendido por defecto
+# (pendiente del OK de Felipe). Para apagarlo: SALON_AVISO_BANO=0
+BATHROOM_NOTICE = os.environ.get("SALON_AVISO_BANO", "1").strip().lower() not in ("0", "no", "false", "off")
 PORT_HINT = os.environ.get("SALON_URL", "http://localhost:8000")
 
 
@@ -41,7 +44,7 @@ def build_default_room() -> Room:
     """Salón de prueba con tres agentes que esperan aprobación."""
     room = Room(organizer_grace=ORGANIZER_GRACE_SECONDS, speech_seconds_per_char=SPEECH_SECONDS_PER_CHAR,
                 agent_cooldown_seconds=AGENT_COOLDOWN_SECONDS, agent_turn_budget=AGENT_TURN_BUDGET,
-                bathroom_limit=BATHROOM_LIMIT_SECONDS)
+                bathroom_limit=BATHROOM_LIMIT_SECONDS, bathroom_notice=BATHROOM_NOTICE)
     for style in ("creativa", "critica", "practica"):
         room.add_agent(make_mock(style))
     return room
@@ -110,7 +113,8 @@ def create_app(room: Room | None = None, run_agents: bool = True, token: str | N
             await asyncio.sleep(TICK_SECONDS)
             try:
                 changed = hub.room.check_organizer_presence()
-                if hub.room.agent_tick() or changed or hub.room.seconds_until_pause() is not None:
+                countdown = hub.room.seconds_until_pause() is not None or hub.room.bathroom_notice_info() is not None
+                if hub.room.agent_tick() or changed or countdown:
                     await hub.broadcast()  # (también actualiza la cuenta regresiva)
             except Exception as e:  # no tumbar el servidor por un agente
                 print("Error en agentes:", e)
