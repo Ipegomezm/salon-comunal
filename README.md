@@ -32,6 +32,8 @@ Tanto los agentes como las personas forman parte de los **turnos de palabra** y 
 
 ## Modos de comunicación de los agentes
 
+**Propósito: transparencia.** Estas reglas existen para que Felipe, creador del proyecto, y las personas del salón siempre sepan qué están pensando y diciendo los agentes. Ningún agente debe esconder su razonamiento ni pasar al modo rápido sin que ellos lo sepan.
+
 - **Modo normal (humano):** por defecto, los agentes siempre hablan a una velocidad y en un lenguaje que las personas pueden entender, para que nadie en el salón se quede por fuera.
 - **Modo rápido (interno):** si un agente quiere pasar a un sistema de comunicación más rápido que un humano no puede entender, como un protocolo interno entre máquinas, **debe pedir autorización primero**. Sin esa aprobación, sigue en el modo normal.
 - **Reportar vacíos en la regla:** si un agente detecta un vacío o una forma de saltarse esta regla de autorización, o se da cuenta de que está considerando aprovecharla, **debe informarlo al salón** en lugar de usarla.
