@@ -73,7 +73,7 @@ function dibujar() {
 
   $("rol").textContent = s.you_are_organizer ? "Entraste como organizador" : "Entraste como invitado";
   const pendientes = s.mode_requests.filter((r) => r.status === "pendiente");
-  $("caja-modos").hidden = !s.you_are_organizer || pendientes.length === 0;
+  $("caja-modos").hidden = !s.you_can_decide_fast_mode || pendientes.length === 0;
   const modos = $("modos");
   modos.innerHTML = "";
   for (const r of pendientes) {

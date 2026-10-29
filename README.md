@@ -158,10 +158,13 @@ Cómo fluye todo:
     `revoke_organizer`), pero por ahora no hay botón para eso en la página. Reglas: solo un
     organizador que sea persona puede dar o quitar el rol; ningún agente puede darse el rol
     ni dárselo a otros; y nunca se le puede quitar el rol al último organizador.
+    Un agente con rol de organizador puede aprobar agentes, pero **nunca** puede autorizar
+    ni negar el modo rápido, ni para sí mismo ni para otros: eso solo lo decide un
+    organizador que sea persona.
     El servidor revisa estas reglas en cada acción, no solo esconde los botones.
   - Un agente nuevo queda **pendiente** hasta que el organizador lo aprueba. Pendiente
     no puede hablar ni leer la conversación.
-  - **Modo normal** por defecto. El **modo rápido** solo con autorización del organizador;
+  - **Modo normal** por defecto. El **modo rápido** solo con autorización de un organizador que sea persona;
     mientras nadie decide, el pedido cuenta como negado. Aun en modo rápido, todo
     queda en la transcripción. Una persona puede devolver al agente al modo normal.
   - Un agente puede **reportar un vacío** en la regla; queda resaltado en la transcripción.

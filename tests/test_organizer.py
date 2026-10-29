@@ -102,3 +102,43 @@ def test_mode_requests_only_shown_to_organizers(setup):
     assert r.snapshot(viewer=ana.id)["mode_requests"] == []
     assert r.snapshot(viewer=felipe.id)["you_are_organizer"] is True
     assert r.snapshot(viewer=ana.id)["you_are_organizer"] is False
+
+
+# --- Un agente organizador nunca decide el modo rápido ---
+
+def test_agent_organizer_cannot_decide_fast_mode_for_itself(setup):
+    from app.orchestrator import Mode
+    r, felipe, ana, lumi = setup
+    r.grant_organizer(lumi.id, by=felipe.id)
+    req = r.request_fast_mode(lumi.id, "x")
+    for approve in (True, False):
+        with pytest.raises(RoomError):
+            r.decide_mode_request(req.id, by=lumi.id, approve=approve)
+    assert req.status == "pendiente" and lumi.mode == Mode.NORMAL
+
+
+def test_agent_organizer_cannot_decide_fast_mode_for_others(setup):
+    from app.orchestrator import Mode
+    r, felipe, ana, lumi = setup
+    r.grant_organizer(lumi.id, by=felipe.id)
+    rocco = r.add_agent(make_mock("critica"), added_by=felipe.id)
+    r.approve_agent(rocco.id, by=lumi.id)  # un agente organizador sí aprueba agentes
+    assert rocco.status == Status.ACTIVE
+    req = r.request_fast_mode(rocco.id, "x")
+    for approve in (True, False):
+        with pytest.raises(RoomError):
+            r.decide_mode_request(req.id, by=lumi.id, approve=approve)
+    assert req.status == "pendiente" and rocco.mode == Mode.NORMAL
+    r.decide_mode_request(req.id, by=felipe.id, approve=True)  # una persona organizadora sí
+    assert rocco.mode == Mode.FAST
+
+
+def test_agent_organizer_does_not_receive_fast_mode_requests(setup):
+    r, felipe, ana, lumi = setup
+    r.grant_organizer(lumi.id, by=felipe.id)
+    r.request_fast_mode(lumi.id, "x")
+    snap = r.snapshot(viewer=lumi.id)
+    assert snap["you_are_organizer"] is True
+    assert snap["you_can_decide_fast_mode"] is False and snap["mode_requests"] == []
+    assert r.snapshot(viewer=felipe.id)["you_can_decide_fast_mode"] is True
+    assert r.snapshot(viewer=ana.id)["you_can_decide_fast_mode"] is False

@@ -27,6 +27,7 @@ def test_organizer_flow_with_token():
             _join(ws, "Felipe", TOKEN)
             st = _state(ws)
             assert st["state"]["you_are_organizer"] is True
+            assert st["state"]["you_can_decide_fast_mode"] is True
             pending = [p for p in st["state"]["participants"] if p["status"] == "pendiente"]
             assert len(pending) == 3
             ws.send_json({"action": "approve_agent", "agent_id": pending[0]["id"]})
@@ -47,6 +48,7 @@ def test_guest_cannot_approve_even_by_sending_the_action():
             _join(ws, "Felipe")  # mismo nombre, sin clave: invitado
             st = _state(ws)
             assert st["state"]["you_are_organizer"] is False
+            assert st["state"]["you_can_decide_fast_mode"] is False
             pending = [p for p in st["state"]["participants"] if p["status"] == "pendiente"]
             ws.send_json({"action": "approve_agent", "agent_id": pending[0]["id"]})
             err = ws.receive_json()

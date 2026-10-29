@@ -279,7 +279,15 @@ class Room:
         return req
 
     def decide_mode_request(self, request_id: int, by: str, approve: bool) -> ModeRequest:
+        """Solo un organizador que sea PERSONA decide el modo rápido.
+
+        Un agente con rol de organizador nunca puede autorizar ni negar el modo
+        rápido, ni para sí mismo ni para otros agentes.
+        """
         human = self._organizer(by)
+        if not human.is_human:
+            raise RoomError("Un agente no puede decidir el modo rápido, aunque sea organizador. "
+                            "Solo una persona organizadora puede hacerlo.")
         req = self.mode_requests.get(int(request_id))
         if req is None:
             raise RoomError("Ese pedido no existe.")
@@ -398,21 +406,23 @@ class Room:
     # ---------- estado para la página ----------
     def snapshot(self, viewer: str | None = None) -> dict:
         """Estado para la página. Los pedidos de modo rápido por decidir solo se
-        mandan a organizadores (igual quedan en la transcripción para todos)."""
-        is_org = False
+        mandan a organizadores que son personas (igual quedan en la transcripción)."""
+        is_org = can_decide_fast = False
         if viewer:
             try:
                 v = self.registry.get(viewer)
                 is_org = v.is_active and v.organizer
+                can_decide_fast = is_org and v.is_human
             except KeyError:
                 pass
         return {
             "you_are_organizer": is_org,
+            "you_can_decide_fast_mode": can_decide_fast,
             "room": self.name,
             "participants": [p.to_dict() for p in self.registry.all()
                              if p.status in (Status.ACTIVE, Status.PENDING)],
             "speaker": self.turns.speaker,
             "queue": list(self.turns.queue),
-            "mode_requests": [r.to_dict() for r in self.mode_requests.values()] if is_org else [],
+            "mode_requests": [r.to_dict() for r in self.mode_requests.values()] if can_decide_fast else [],
             "transcript": [e.to_dict() for e in self.context.recent(300)],
         }
