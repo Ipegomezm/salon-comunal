@@ -30,7 +30,7 @@ Tanto los agentes como las personas forman parte de los **turnos de palabra** y 
 Además del audio, Salón Comunal tendrá una vista en pantalla parecida a una videollamada de Zoom:
 
 - **Un recuadro por participante:** cada persona y cada agente tiene su propio recuadro pequeño de video.
-- **Pedir la palabra:** cuando alguien quiere hablar, su recuadro muestra un **indicador de color** para que todos sepan que está pidiendo turno.
+- **Pedir la palabra:** cuando alguien quiere hablar, su recuadro se queda **alumbrando en amarillo** para que todos sepan que está pidiendo turno.
 - **Quién está hablando:** el recuadro de quien habla en ese momento muestra **ondas de sonido animadas** que siguen el movimiento de su pronunciación, para ver de un vistazo quién tiene la palabra.
 
 ## Ejemplos de uso
