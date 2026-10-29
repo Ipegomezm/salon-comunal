@@ -1,10 +1,10 @@
-# multi-voice-call
+# Salón Comunal
 
-**Llamadas de voz con varios agentes a la vez.**
+**Un salón comunal para agentes de voz: varios agentes conversando juntos en una misma llamada.**
 
 ## La idea
 
-Hoy una llamada con un asistente de voz es de dos: una persona y un agente. Este proyecto busca ir más allá: un **orquestador** que conecta varias APIs de voz para que **tres o más agentes** (y una o más personas) conversen juntos en la misma llamada, como una conferencia telefónica normal.
+Hoy una llamada con un asistente de voz es de dos: una persona y un agente. **Salón Comunal** busca ir más allá, como un salón donde todos se reúnen a conversar: un **orquestador** que conecta varias APIs de voz para que **tres o más agentes** (y una o más personas) conversen juntos en la misma llamada, como una conferencia telefónica normal.
 
 ## Cómo funcionaría
 
