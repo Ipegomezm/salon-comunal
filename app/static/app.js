@@ -31,10 +31,15 @@ function el(tag, attrs = {}, ...hijos) {
 
 function dibujar() {
   const s = estado;
+  // En «Baño» el organizador no aprueba ni decide: se esconden esos botones.
+  const yoFuera = !!(s.participants.find((p) => p.id === yo) || {}).away;
+  const puedoOrganizar = s.you_are_organizer && !yoFuera;
   const aviso = $("aviso-pausa");
   if (s.paused) {
     aviso.hidden = false; aviso.className = "pausa";
-    aviso.textContent = "El salón está en pausa: no hay un organizador conectado. Sigue cuando vuelva.";
+    aviso.textContent = s.pause_reason === "bano"
+      ? "El salón está en pausa: el organizador lleva mucho tiempo fuera (Baño). Sigue cuando toque «Ya volví»."
+      : "El salón está en pausa: no hay un organizador conectado. Sigue cuando vuelva.";
   } else if (s.seconds_until_pause !== null) {
     aviso.hidden = false; aviso.className = "";
     aviso.textContent = "No hay un organizador conectado. El salón se pausa en " + Math.ceil(s.seconds_until_pause) + " segundos.";
@@ -59,9 +64,10 @@ function dibujar() {
     if (p.organizer) li.append(el("span", { class: "etiqueta org" }, "organizador"));
     if (p.mode === "rapido") li.append(el("span", { class: "etiqueta rapido" }, "modo rápido"));
     if (p.autonomous) li.append(el("span", { class: "etiqueta solo" }, "trabajando solo"));
+    if (p.away) li.append(el("span", { class: "etiqueta" }, "fuera un rato"));
     if (p.personality) li.append(el("div", { class: "desc" }, p.personality));
     if (p.kind === "agente" && p.status === "pendiente") {
-      if (s.you_are_organizer) {
+      if (puedoOrganizar) {
         li.append(el("div", { class: "desc" }, "Espera tu aprobación para entrar."));
         li.append(el("button", { class: "si", onclick: () => enviar("approve_agent", { agent_id: p.id }) }, "Aprobar"));
         li.append(el("button", { class: "no", onclick: () => enviar("reject_agent", { agent_id: p.id }) }, "No aprobar"));
@@ -84,7 +90,7 @@ function dibujar() {
 
   $("rol").textContent = s.you_are_organizer ? "Entraste como organizador" : "Entraste como invitado";
   const pendientes = s.mode_requests.filter((r) => r.status === "pendiente");
-  $("caja-modos").hidden = !s.you_can_decide_fast_mode || pendientes.length === 0;
+  $("caja-modos").hidden = !s.you_can_decide_fast_mode || yoFuera || pendientes.length === 0;
   const modos = $("modos");
   modos.innerHTML = "";
   for (const r of pendientes) {
@@ -97,7 +103,7 @@ function dibujar() {
 
   const vacios = $("vacios");
   vacios.innerHTML = "";
-  $("caja-vacios").hidden = !(s.flags && s.flags.length);
+  $("caja-vacios").hidden = yoFuera || !(s.flags && s.flags.length);
   for (const f of s.flags || []) {
     vacios.append(el("li", {},
       el("div", {}, f.author + ": " + f.text),
@@ -130,12 +136,18 @@ function dibujar() {
   }
   if (abajo) t.scrollTop = t.scrollHeight;
 
+  const yoP = s.participants.find((p) => p.id === yo);
+  const fuera = !!(yoP && yoP.away);
+  $("btn-bano").textContent = fuera ? "Ya volví" : "Baño";
+  $("btn-bano").classList.toggle("si", fuera);
+  $("mensaje").disabled = fuera;
+  $("mensaje").placeholder = fuera ? "Estás fuera un rato. Toca «Ya volví» para hablar." : "Escribe tu mensaje…";
   const enFila = s.queue.includes(yo);
-  $("btn-pedir").disabled = enFila || s.speaker === yo;
+  $("btn-pedir").disabled = enFila || s.speaker === yo || fuera;
   $("btn-retirar").disabled = !enFila;
   $("btn-soltar").disabled = s.speaker !== yo;
   const hablaAgente = s.speaker && s.participants.find((p) => p.id === s.speaker)?.kind === "agente";
-  $("btn-interrumpir").disabled = !hablaAgente;
+  $("btn-interrumpir").disabled = !hablaAgente || fuera;
 }
 
 $("form-entrar").onsubmit = (ev) => {
@@ -187,6 +199,10 @@ $("btn-pedir").onclick = () => enviar("request_floor");
 $("btn-retirar").onclick = () => enviar("withdraw_floor");
 $("btn-soltar").onclick = () => enviar("release_floor");
 $("btn-interrumpir").onclick = () => enviar("interrupt");
+$("btn-bano").onclick = () => {
+  const yoP = estado && estado.participants.find((p) => p.id === yo);
+  enviar(yoP && yoP.away ? "come_back" : "step_away");
+};
 $("form-agente").onsubmit = (ev) => {
   ev.preventDefault();
   enviar("add_agent", { style: $("estilo").value, name: $("nombre-agente").value });

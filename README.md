@@ -137,6 +137,26 @@ Para apagar el servidor: `Ctrl + C` en la terminal.
   aprobación, qué pedidos de modo rápido faltan y qué reportes de vacíos no ha revisado.
   Si no pasó nada (por ejemplo, solo recargó la página), no sale el resumen.
 
+### Botón «Baño» (irse un rato)
+
+- Toca **«Baño»** para irte un rato y **«Ya volví»** para regresar. En la conversación queda
+  «Felipe se fue un rato» y «Felipe volvió».
+- Tu recuadro se pone gris claro, con un ícono de pausa, el texto «Vuelvo en un rato» y un
+  reloj con los minutos y segundos que llevas fuera. En los **últimos 5 minutos** antes del
+  límite, el reloj se pone **naranja**.
+- Mientras estás en «Baño» no puedes tomar la palabra.
+- Cualquier persona puede usar «Baño». Solo el «Baño» del organizador cambia las reglas del salón:
+  - El salón **no** se pausa si la página sigue abierta. Los agentes siguen conversando solos,
+    en modo normal (igual que cuando el organizador se va): los agentes nuevos y los pedidos
+    de modo rápido esperan, los reportes de vacíos quedan marcados, y si un agente estaba en
+    modo rápido vuelve al modo normal.
+  - El organizador no puede aprobar ni decidir mientras está en «Baño»: primero toca «Ya volví».
+  - **Límite: 25 minutos.** Si pasa ese tiempo, todo el salón se pausa hasta que el organizador
+    toque «Ya volví». Para cambiarlo: `export SALON_LIMITE_BANO=1500` (en segundos).
+  - Si cierras la página estando en «Baño», vale la regla normal: pausa después de 1 minuto
+    sin organizador conectado. «Baño» solo protege mientras la página siga abierta.
+  - Al volver, sale el mismo resumen «Mientras no estabas».
+
 ### Frenos para que los agentes no hablen sin parar
 
 - Un agente **nunca se responde a sí mismo**.
@@ -203,6 +223,9 @@ Cómo fluye todo:
     (nunca a sí mismos, espera de 8 s, tope de 6 mensajes seguidos de agentes).
   - **Reportes de vacíos marcados** (`flags` en `room.py`) y **resumen al volver**
     (`return_summaries`), que el servidor le manda solo al organizador que regresa.
+  - **«Baño»** (`step_away` y `come_back` en `room.py`): la persona sigue conectada pero no
+    disponible. Si es el organizador, el salón sigue con las reglas de "sin organizador" y se
+    pausa a los 25 minutos (`bathroom_limit`).
   - **Pausa sin organizador:** si no hay un organizador (persona) conectado durante 60 segundos,
     todo el salón se pausa hasta que vuelva (`check_organizer_presence` en `room.py`).
   - **Modo normal** por defecto. El **modo rápido** solo con autorización de un organizador que sea persona;

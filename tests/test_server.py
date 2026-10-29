@@ -100,3 +100,25 @@ def test_organizer_gets_summary_on_return():
                 assert got is not None
                 assert any(x["author"] == "Ana" for x in got["messages"])
                 assert len(got["pending_agents"]) == 3
+
+
+def test_bano_over_websocket():
+    app = create_app(build_default_room(), run_agents=False, token=TOKEN)
+    with TestClient(app) as client:
+        with client.websocket_connect("/ws") as org:
+            _join(org, "Felipe", TOKEN)
+            st = _state(org)
+            pending = [p for p in st["state"]["participants"] if p["status"] == "pendiente"]
+            org.send_json({"action": "step_away"})
+            st = _state(org)
+            me = next(p for p in st["state"]["participants"] if p["id"] == st["you"])
+            assert me["away"] is True and me["away_seconds"] is not None
+            assert st["state"]["paused"] is False
+            org.send_json({"action": "approve_agent", "agent_id": pending[0]["id"]})
+            err = org.receive_json()
+            assert err["type"] == "error" and "Ya volví" in err["message"]
+            _state(org)
+            org.send_json({"action": "come_back"})
+            _state(org)
+            m = org.receive_json()
+            assert m["type"] == "return_summary"

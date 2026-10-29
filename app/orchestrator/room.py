@@ -39,6 +39,8 @@ DEFAULT_ORGANIZER_GRACE_SECONDS = 60.0
 # Frenos de la conversación entre agentes (configurables).
 DEFAULT_AGENT_COOLDOWN_SECONDS = 8.0
 DEFAULT_AGENT_TURN_BUDGET = 6
+# «Baño»: si el organizador se aleja con la página abierta, el salón sigue hasta este límite.
+DEFAULT_BATHROOM_LIMIT_SECONDS = 1500.0   # 25 minutos
 
 
 class Room:
@@ -50,6 +52,7 @@ class Room:
         speech_seconds_per_char: float = 0.0,
         agent_cooldown_seconds: float = DEFAULT_AGENT_COOLDOWN_SECONDS,
         agent_turn_budget: int = DEFAULT_AGENT_TURN_BUDGET,
+        bathroom_limit: float = DEFAULT_BATHROOM_LIMIT_SECONDS,
     ) -> None:
         self.name = name
         # Freno para que los agentes no conversen sin fin entre ellos:
@@ -72,7 +75,10 @@ class Room:
         self.organizer_grace = organizer_grace
         self.clock = clock
         self.paused = False
+        self.pause_reason: str | None = None   # "sin_organizador" o "bano"
         self._organizer_absent_since: float | None = clock()  # al arrancar aún no hay organizador
+        self._unavailable = True       # sin organizador disponible (se fue o está en «Baño»)
+        self.bathroom_limit = bathroom_limit
         self.registry = Registry()
         self.turns = TurnManager()
         self.context = SharedContext()
@@ -105,6 +111,8 @@ class Room:
         p = self._active(pid)
         if not p.organizer:
             raise RoomError("Solo el organizador del salón puede hacer esto.")
+        if p.away:
+            raise RoomError("Estás fuera un rato (Baño). Toca «Ya volví» primero.")
         return p
 
     def organizers(self) -> list[Participant]:
@@ -123,26 +131,51 @@ class Room:
 
     # ---------- pausa si no hay organizador ----------
     def human_organizers_present(self) -> bool:
-        return any(p.is_human for p in self.organizers())
+        """¿Hay un organizador (persona) conectado y disponible (no en «Baño»)?"""
+        return any(p.is_human and not p.away for p in self.organizers())
+
+    def _connected_human_organizers(self) -> list[Participant]:
+        """Organizadores (personas) con la página abierta, estén o no en «Baño»."""
+        return [p for p in self.organizers() if p.is_human]
+
+    def _pending_pause(self) -> tuple[str, float] | None:
+        """Si el salón va camino a la pausa: (motivo, segundos que faltan). Si no, None."""
+        if self.paused or self.human_organizers_present():
+            return None
+        now = self.clock()
+        connected = self._connected_human_organizers()
+        if connected:  # todos los organizadores conectados están en «Baño»
+            latest = max(p.away_since for p in connected)
+            return "bano", max(0.0, self.bathroom_limit - (now - latest))
+        if self._organizer_absent_since is None:
+            return None
+        return "sin_organizador", max(0.0, self.organizer_grace - (now - self._organizer_absent_since))
 
     def seconds_until_pause(self) -> float | None:
-        """Segundos que faltan para la pausa (None si hay organizador o ya está pausado)."""
-        if self.paused or self._organizer_absent_since is None:
-            return None
-        return max(0.0, self.organizer_grace - (self.clock() - self._organizer_absent_since))
+        """Segundos que faltan para la pausa por falta de organizador conectado
+        (None si hay organizador, si está en «Baño» o si ya está pausado)."""
+        pending = self._pending_pause()
+        if pending and pending[0] == "sin_organizador":
+            return pending[1]
+        return None
 
     def check_organizer_presence(self) -> bool:
-        """Revisa si hay un organizador (persona) conectado. Devuelve True si algo cambió.
+        """Revisa si hay un organizador (persona) disponible. Devuelve True si algo cambió.
 
-        - Sin organizador: empieza a contar. Al pasar el margen (60 s por defecto), TODO el
-          salón se pausa: nadie habla ni pide la palabra, personas incluidas, y los agentes se detienen.
-        - Si un organizador vuelve dentro del margen (por ejemplo, recargó la página), no pasa nada.
-        - Si vuelve después, el salón se reanuda.
+        - Organizador disponible: todo normal. Si volvía de una ausencia, se arma el resumen
+          y, si el salón estaba en pausa, se reanuda.
+        - Sin organizador disponible (se fue o está en «Baño»): los agentes siguen solos en modo
+          normal; lo que necesita decisión queda pendiente.
+        - Pausa de TODO el salón:
+          * si no hay ningún organizador conectado durante `organizer_grace` (60 s), o
+          * si los organizadores conectados llevan más de `bathroom_limit` (25 min) en «Baño».
         """
         now = self.clock()
+        changed = False
         if self.human_organizers_present():
-            was_waiting = self._organizer_absent_since is not None
+            changed = self._organizer_absent_since is not None or self._unavailable
             self._organizer_absent_since = None
+            self._unavailable = False
             self._had_organizer = True
             if self._away is not None:
                 self._make_return_summary(now)
@@ -150,22 +183,61 @@ class Room:
                 self.paused = False
                 self._log(ctx.SYSTEM, "Volvió un organizador. El salón sigue.")
                 return True
-            return was_waiting
-        if self._organizer_absent_since is None:
-            self._organizer_absent_since = now
+            return changed
+
+        if not self._unavailable:  # recién se quedó sin organizador disponible
+            self._unavailable = True
+            changed = True
             if self._had_organizer and self._away is None:
                 last = self.context.entries[-1].id if self.context.entries else 0
                 self._away = {"since": now, "since_entry": last, "paused": False}
             self._force_normal_mode()
-            return True
-        if not self.paused and now - self._organizer_absent_since >= self.organizer_grace:
+
+        if self._connected_human_organizers():
+            self._organizer_absent_since = None   # la página sigue abierta: protege «Baño»
+        elif self._organizer_absent_since is None:
+            self._organizer_absent_since = now
+            changed = True
+
+        pending = self._pending_pause()
+        if pending and pending[1] <= 0 and not self.paused:
             self.paused = True
+            self.pause_reason = pending[0]
             if self._away is not None:
                 self._away["paused"] = True
-            self._log(ctx.SYSTEM, f"No hay un organizador conectado desde hace "
-                                  f"{int(self.organizer_grace)} segundos. El salón queda en pausa.")
+            if pending[0] == "bano":
+                mins = int(self.bathroom_limit // 60)
+                self._log(ctx.SYSTEM, f"El organizador lleva {mins} minutos fuera (Baño). El salón queda en pausa.")
+            else:
+                self._log(ctx.SYSTEM, f"No hay un organizador conectado desde hace "
+                                      f"{int(self.organizer_grace)} segundos. El salón queda en pausa.")
             return True
-        return False
+        return changed
+
+    # ---------- «Baño»: alejarse un rato ----------
+    def step_away(self, pid: str) -> None:
+        """Una persona se va un rato. Suelta la palabra y retira su pedido si lo tenía."""
+        p = self._human(pid)
+        if p.away:
+            raise RoomError("Ya estás fuera un rato. Toca «Ya volví» para volver.")
+        if self.turns.speaker == pid:
+            self.turns.release(pid)
+        elif pid in self.turns.queue:
+            self.turns.withdraw(pid)
+        p.away, p.away_since = True, self.clock()
+        self._log(ctx.SYSTEM, f"{p.name} se fue un rato.")
+        self._log_speaker_change()
+
+    def come_back(self, pid: str) -> None:
+        p = self._human(pid)
+        if not p.away:
+            raise RoomError("No estabas fuera.")
+        p.away, p.away_since = False, None
+        self._log(ctx.SYSTEM, f"{p.name} volvió.")
+
+    def _not_away(self, p: Participant) -> None:
+        if p.away:
+            raise RoomError(f"{p.name} está fuera un rato. Hay que tocar «Ya volví» primero.")
 
     def _force_normal_mode(self) -> None:
         """Sin organizador conectado, los agentes hablan solo en modo normal."""
@@ -361,6 +433,7 @@ class Room:
     def request_floor(self, pid: str) -> bool:
         self._require_not_paused()
         p = self._active(pid)
+        self._not_away(p)
         try:
             granted = self.turns.request(pid)
         except FloorError as e:
@@ -393,6 +466,7 @@ class Room:
         self._require_not_paused()
         human = self._human(by)
         t = self._active(target)
+        self._not_away(t)
         try:
             self.turns.grant(target)
         except FloorError as e:
@@ -404,6 +478,7 @@ class Room:
         """Solo una persona puede interrumpir, y solo a un agente."""
         self._require_not_paused()
         human = self._human(pid)
+        self._not_away(human)
         sp = self.turns.speaker
         if sp is None:
             raise RoomError("Nadie tiene la palabra; no hace falta interrumpir.")
@@ -421,6 +496,7 @@ class Room:
         """Hablar. Requiere tener la palabra. El modo rápido requiere autorización."""
         self._require_not_paused()
         p = self._active(pid)
+        self._not_away(p)
         text = (text or "").strip()
         if not text:
             raise RoomError("El mensaje está vacío.")
@@ -443,7 +519,7 @@ class Room:
         - Si la tiene otra persona, debe esperar su turno.
         """
         self._require_not_paused()
-        self._human(pid)
+        self._not_away(self._human(pid))
         if not (text or "").strip():
             raise RoomError("El mensaje está vacío.")
         sp = self.turns.speaker
@@ -629,6 +705,11 @@ class Room:
         return changed
 
     # ---------- estado para la página ----------
+    def _participant_view(self, p: Participant) -> dict:
+        d = p.to_dict()
+        d["away_seconds"] = (self.clock() - p.away_since) if p.away and p.away_since is not None else None
+        return d
+
     def snapshot(self, viewer: str | None = None) -> dict:
         """Estado para la página. Los pedidos de modo rápido por decidir solo se
         mandan a organizadores que son personas (igual quedan en la transcripción)."""
@@ -643,14 +724,16 @@ class Room:
         return {
             "you_are_organizer": is_org,
             "paused": self.paused,
+            "pause_reason": self.pause_reason if self.paused else None,
             "seconds_until_pause": self.seconds_until_pause(),
             "speech_seconds_per_char": self.speech_seconds_per_char,
             "flags": [f for f in self.flags if not f["reviewed"]] if is_org else [],
             "agent_budget_left": self.agent_budget_left(),
             "you_can_decide_fast_mode": can_decide_fast,
             "room": self.name,
-            "participants": [p.to_dict() for p in self.registry.all()
+            "participants": [self._participant_view(p) for p in self.registry.all()
                              if p.status in (Status.ACTIVE, Status.PENDING)],
+            "bathroom_limit": self.bathroom_limit,
             "speaker": self.turns.speaker,
             "queue": list(self.turns.queue),
             "mode_requests": [r.to_dict() for r in self.mode_requests.values()] if can_decide_fast else [],

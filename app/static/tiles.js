@@ -46,11 +46,12 @@ const Recuadros = (() => {
     const el = document.createElement("div");
     el.className = "recuadro";
     el.innerHTML = `
-      <div class="cara"><span class="iniciales"></span></div>
+      <div class="cara"><span class="iniciales"></span><span class="icono-pausa" aria-hidden="true">⏸</span></div>
       <div class="ondas" aria-hidden="true">${"<i></i>".repeat(BARRAS)}</div>
       <div class="nombre"></div>
       <div class="rol"></div>
-      <div class="estado"></div>`;
+      <div class="estado"></div>
+      <div class="reloj" aria-label="Tiempo fuera"></div>`;
     const r = { el, barras: [...el.querySelectorAll(".ondas i")] };
     recuadros.set(p.id, r);
     return r;
@@ -75,7 +76,8 @@ const Recuadros = (() => {
       const pide = s.queue.includes(p.id);
       const pendiente = p.status === "pendiente";
       let estado = "";
-      if (pendiente) estado = "Espera aprobación";
+      if (p.away) estado = "Vuelvo en un rato";
+      else if (pendiente) estado = "Espera aprobación";
       else if (s.paused) estado = "En pausa";
       else if (tiene) estado = "Tiene la palabra";
       else if (pide) estado = "Pide la palabra";
@@ -88,11 +90,28 @@ const Recuadros = (() => {
       r.el.classList.toggle("pendiente", pendiente);
       r.el.classList.toggle("pausa", s.paused);
       r.el.classList.toggle("solo", p.autonomous);
+      r.el.classList.toggle("bano", !!p.away);
+      // Reloj de «Baño»: se guarda el tiempo fuera que mandó el servidor y se sigue contando aquí.
+      r.fueraDesde = p.away && p.away_seconds !== null ? performance.now() - p.away_seconds * 1000 : null;
+      r.limite = s.bathroom_limit;
+      pintarReloj(r);
     }
     for (const [id, r] of recuadros) {
       if (!vistos.has(id)) { r.el.remove(); recuadros.delete(id); fuentes.delete(id); }
     }
   }
+
+  function pintarReloj(r) {
+    const reloj = r.el.querySelector(".reloj");
+    if (r.fueraDesde === null || r.fueraDesde === undefined) { reloj.textContent = ""; return; }
+    const seg = Math.max(0, Math.floor((performance.now() - r.fueraDesde) / 1000));
+    const mm = String(Math.floor(seg / 60)).padStart(2, "0");
+    const ss = String(seg % 60).padStart(2, "0");
+    reloj.textContent = `${mm}:${ss}`;
+    // Naranja en los últimos 5 minutos antes del límite.
+    reloj.classList.toggle("naranja", r.limite - seg <= 300);
+  }
+  setInterval(() => { for (const r of recuadros.values()) pintarReloj(r); }, 1000);
 
   // Se llama con cada mensaje nuevo de la transcripción.
   function alHablar(entrada, segundosPorLetra) {
