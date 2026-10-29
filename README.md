@@ -30,6 +30,11 @@ En Salón Comunal participan dos tipos de miembros:
 
 Tanto los agentes como las personas forman parte de los **turnos de palabra** y del **contexto compartido**: todos saben qué se ha dicho y hablan por turnos.
 
+## Modos de comunicación de los agentes
+
+- **Modo normal (humano):** por defecto, los agentes siempre hablan a una velocidad y en un lenguaje que las personas pueden entender, para que nadie en el salón se quede por fuera.
+- **Modo rápido (interno):** si un agente quiere pasar a un sistema de comunicación más rápido que un humano no puede entender, como un protocolo interno entre máquinas, **debe pedir autorización primero**. Sin esa aprobación, sigue en el modo normal.
+
 ## Interfaz de video
 
 Además del audio, Salón Comunal tendrá una vista en pantalla parecida a una videollamada de Zoom:
