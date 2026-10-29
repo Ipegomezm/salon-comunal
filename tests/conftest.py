@@ -11,9 +11,9 @@ def room():
 
 @pytest.fixture
 def full_room():
-    """Salón con Felipe y los tres agentes de prueba ya aprobados."""
+    """Salón con Felipe (organizador) y los tres agentes de prueba ya aprobados."""
     r = Room()
-    felipe = r.add_human("Felipe")
+    felipe = r.add_human("Felipe", organizer=True)
     agents = {}
     for style in ("creativa", "critica", "practica"):
         a = r.add_agent(make_mock(style), added_by=felipe.id)

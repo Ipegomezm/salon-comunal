@@ -1,8 +1,8 @@
 """Toma una captura de la página con algo pasando (opcional, solo para documentar).
 
 Requiere:  pip install playwright   y un Chrome/Chromium instalado.
-Uso (con el servidor corriendo en el puerto 8000):
-    python scripts/captura.py docs/captura-etapa1.png
+Uso (con el servidor corriendo; usa el link de organizador que sale en la consola):
+    python scripts/captura.py docs/captura-etapa1.png "http://localhost:8000/?organizador=CLAVE"
 """
 import sys
 import time

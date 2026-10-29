@@ -62,6 +62,15 @@ class Room:
             raise RoomError("Solo una persona del salón puede hacer esto.")
         return p
 
+    def _organizer(self, pid: str) -> Participant:
+        p = self._active(pid)
+        if not p.organizer:
+            raise RoomError("Solo el organizador del salón puede hacer esto.")
+        return p
+
+    def organizers(self) -> list[Participant]:
+        return [p for p in self.registry.active() if p.organizer]
+
     def _agent(self, pid: str) -> Participant:
         p = self._get(pid)
         if not p.is_agent:
@@ -72,11 +81,44 @@ class Room:
         return self.context.add(kind, text, author, mode)
 
     # ---------- entrar, salir, aprobar ----------
-    def add_human(self, name: str) -> Participant:
+    def add_human(self, name: str, organizer: bool = False) -> Participant:
+        """Una persona entra. `organizer=True` solo lo decide el servidor (link secreto)."""
         name = (name or "").strip() or "Invitado"
         p = self.registry.add(name, Kind.HUMAN, Status.ACTIVE)
-        self._log(ctx.SYSTEM, f"{p.name} entró al salón.")
+        p.organizer = organizer
+        extra = " como organizador" if organizer else ""
+        self._log(ctx.SYSTEM, f"{p.name} entró al salón{extra}.")
         return p
+
+    # ---------- rol de organizador ----------
+    def grant_organizer(self, target: str, by: str) -> Participant:
+        """Un organizador (persona) le da el rol a otra persona o a un agente activo.
+
+        Ningún agente puede dar el rol, ni a sí mismo ni a otros.
+        """
+        granter = self._organizer(by)
+        if not granter.is_human:
+            raise RoomError("Un agente no puede dar el rol de organizador.")
+        t = self._active(target)
+        if t.organizer:
+            raise RoomError(f"{t.name} ya es organizador.")
+        t.organizer = True
+        self._log(ctx.SYSTEM, f"{granter.name} le dio el rol de organizador a {t.name}.")
+        return t
+
+    def revoke_organizer(self, target: str, by: str) -> Participant:
+        """Un organizador (persona) le quita el rol a alguien. Nunca al último organizador."""
+        revoker = self._organizer(by)
+        if not revoker.is_human:
+            raise RoomError("Un agente no puede quitar el rol de organizador.")
+        t = self._get(target)
+        if not t.organizer:
+            raise RoomError(f"{t.name} no es organizador.")
+        if t.is_active and len(self.organizers()) <= 1:
+            raise RoomError("No se puede quitar el rol al último organizador.")
+        t.organizer = False
+        self._log(ctx.SYSTEM, f"{revoker.name} le quitó el rol de organizador a {t.name}.")
+        return t
 
     def add_agent(self, adapter, added_by: str | None = None) -> Participant:
         """Agrega un agente. Queda PENDIENTE hasta que una persona lo apruebe."""
@@ -85,11 +127,11 @@ class Room:
             who = self._human(added_by).name
         p = self.registry.add(adapter.name, Kind.AGENT, Status.PENDING, adapter.personality)
         self.adapters[p.id] = adapter
-        self._log(ctx.SYSTEM, f"{who} agregó al agente {p.name}. Espera aprobación de una persona.")
+        self._log(ctx.SYSTEM, f"{who} agregó al agente {p.name}. Espera aprobación del organizador.")
         return p
 
     def approve_agent(self, agent_id: str, by: str) -> Participant:
-        human = self._human(by)
+        human = self._organizer(by)
         agent = self._agent(agent_id)
         if agent.status != Status.PENDING:
             raise RoomError(f"{agent.name} no está esperando aprobación.")
@@ -98,7 +140,7 @@ class Room:
         return agent
 
     def reject_agent(self, agent_id: str, by: str) -> Participant:
-        human = self._human(by)
+        human = self._organizer(by)
         agent = self._agent(agent_id)
         if agent.status != Status.PENDING:
             raise RoomError(f"{agent.name} no está esperando aprobación.")
@@ -233,11 +275,11 @@ class Room:
         req = ModeRequest(id=next(self._req_ids), agent_id=agent_id, reason=reason or "(sin motivo)")
         self.mode_requests[req.id] = req
         self._log(ctx.MODE, f"{agent.name} pide pasar a modo rápido. Motivo: {req.reason}. "
-                            f"Sigue en modo normal hasta que una persona lo autorice.")
+                            f"Sigue en modo normal hasta que el organizador lo autorice.")
         return req
 
     def decide_mode_request(self, request_id: int, by: str, approve: bool) -> ModeRequest:
-        human = self._human(by)
+        human = self._organizer(by)
         req = self.mode_requests.get(int(request_id))
         if req is None:
             raise RoomError("Ese pedido no existe.")
@@ -354,13 +396,23 @@ class Room:
         return changed
 
     # ---------- estado para la página ----------
-    def snapshot(self) -> dict:
+    def snapshot(self, viewer: str | None = None) -> dict:
+        """Estado para la página. Los pedidos de modo rápido por decidir solo se
+        mandan a organizadores (igual quedan en la transcripción para todos)."""
+        is_org = False
+        if viewer:
+            try:
+                v = self.registry.get(viewer)
+                is_org = v.is_active and v.organizer
+            except KeyError:
+                pass
         return {
+            "you_are_organizer": is_org,
             "room": self.name,
             "participants": [p.to_dict() for p in self.registry.all()
                              if p.status in (Status.ACTIVE, Status.PENDING)],
             "speaker": self.turns.speaker,
             "queue": list(self.turns.queue),
-            "mode_requests": [r.to_dict() for r in self.mode_requests.values()],
+            "mode_requests": [r.to_dict() for r in self.mode_requests.values()] if is_org else [],
             "transcript": [e.to_dict() for e in self.context.recent(300)],
         }

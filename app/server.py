@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -15,6 +16,16 @@ from app.orchestrator import Room, RoomError
 
 STATIC = Path(__file__).parent / "static"
 TICK_SECONDS = float(os.environ.get("SALON_TICK", "1.5"))  # pausa entre pasos de los agentes
+PORT_HINT = os.environ.get("SALON_URL", "http://localhost:8000")
+
+
+def organizer_token() -> str:
+    """Clave secreta del organizador.
+
+    Si existe la variable SALON_ORGANIZER_TOKEN se usa esa (queda fija).
+    Si no, se inventa una nueva cada vez que el servidor arranca.
+    """
+    return os.environ.get("SALON_ORGANIZER_TOKEN") or secrets.token_urlsafe(16)
 
 
 def build_default_room() -> Room:
@@ -33,10 +44,9 @@ class Hub:
         self.sockets: dict[WebSocket, str] = {}
 
     async def broadcast(self) -> None:
-        state = self.room.snapshot()
         for ws, pid in list(self.sockets.items()):
             try:
-                await ws.send_json({"type": "state", "you": pid, "state": state})
+                await ws.send_json({"type": "state", "you": pid, "state": self.room.snapshot(viewer=pid)})
             except Exception:
                 self.sockets.pop(ws, None)
 
@@ -74,8 +84,9 @@ def handle_action(room: Room, pid: str, msg: dict) -> None:
         raise RoomError("Acción desconocida.")
 
 
-def create_app(room: Room | None = None, run_agents: bool = True) -> FastAPI:
+def create_app(room: Room | None = None, run_agents: bool = True, token: str | None = None) -> FastAPI:
     hub = Hub(room or build_default_room())
+    token = token or organizer_token()
 
     async def agent_loop() -> None:
         while True:
@@ -89,12 +100,16 @@ def create_app(room: Room | None = None, run_agents: bool = True) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         task = asyncio.create_task(agent_loop()) if run_agents else None
+        print("\n=== Salón Comunal ===", flush=True)
+        print(f"Link para invitados:   {PORT_HINT}/", flush=True)
+        print(f"Link de ORGANIZADOR (secreto, no lo compartas): {PORT_HINT}/?organizador={token}\n", flush=True)
         yield
         if task:
             task.cancel()
 
     app = FastAPI(title="Salón Comunal", lifespan=lifespan)
     app.state.hub = hub
+    app.state.organizer_token = token
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
     @app.get("/")
@@ -103,7 +118,7 @@ def create_app(room: Room | None = None, run_agents: bool = True) -> FastAPI:
 
     @app.get("/api/estado")
     async def estado():
-        return hub.room.snapshot()
+        return hub.room.snapshot()  # vista de invitado (sin pedidos de modo por decidir)
 
     @app.websocket("/ws")
     async def ws_endpoint(ws: WebSocket):
@@ -115,7 +130,11 @@ def create_app(room: Room | None = None, run_agents: bool = True) -> FastAPI:
                 await ws.send_json({"type": "error", "message": "Primero escribe tu nombre para entrar."})
                 await ws.close()
                 return
-            pid = hub.room.add_human(first.get("name", "")).id
+            given = str(first.get("organizer_token") or "")
+            is_org = bool(given) and secrets.compare_digest(given, token)
+            if given and not is_org:
+                await ws.send_json({"type": "error", "message": "El link de organizador no es válido. Entras como invitado."})
+            pid = hub.room.add_human(first.get("name", ""), organizer=is_org).id
             hub.sockets[ws] = pid
             await hub.broadcast()
             while True:

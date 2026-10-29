@@ -27,7 +27,7 @@ def test_fast_message_without_authorization_is_blocked(full_room):
     assert "Se bloqueó" in r.context.entries[-1].text
 
 
-def test_only_humans_authorize(full_room):
+def test_agents_cannot_authorize(full_room):
     r, felipe, agents = full_room
     rocco, lumi = agents["Rocco"], agents["Lumi"]
     req = r.request_fast_mode(rocco.id, "coordinar")
@@ -103,3 +103,13 @@ def test_mock_agents_request_fast_mode_and_report_loophole(full_room):
     assert len(reqs) == 1 and reqs[0].agent_id == agents["Rocco"].id
     assert agents["Rocco"].mode == Mode.NORMAL
     assert any(e.kind == "vacio" and e.author_id == agents["Tina"].id for e in r.context.entries)
+
+
+def test_non_organizer_cannot_decide_fast_mode(full_room):
+    r, felipe, agents = full_room
+    ana = r.add_human("Ana")
+    rocco = agents["Rocco"]
+    req = r.request_fast_mode(rocco.id, "coordinar")
+    with pytest.raises(RoomError):
+        r.decide_mode_request(req.id, by=ana.id, approve=True)
+    assert req.status == "pendiente" and rocco.mode == Mode.NORMAL

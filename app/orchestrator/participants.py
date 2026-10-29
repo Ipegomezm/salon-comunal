@@ -33,6 +33,7 @@ class Participant:
     autonomous: bool = False
     autonomous_task: str | None = None
     personality: str = ""
+    organizer: bool = False   # rol "organizador": aprueba agentes y decide el modo rápido
 
     @property
     def is_human(self) -> bool:
@@ -56,6 +57,7 @@ class Participant:
             "autonomous": self.autonomous,
             "autonomous_task": self.autonomous_task,
             "personality": self.personality,
+            "organizer": self.organizer,
         }
 
 

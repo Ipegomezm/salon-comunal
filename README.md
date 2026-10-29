@@ -79,9 +79,20 @@ Necesitas Python 3.11 o más nuevo. Todo es local: no usa claves, ni APIs pagas,
    uvicorn app.server:app --reload
    ```
 
-4. Abre en el navegador: <http://localhost:8000>. Ese es el link para entrar al salón.
-   Escribe tu nombre, aprueba a los agentes de prueba (Lumi, Rocco y Tina) y escribe un mensaje.
-   Puedes abrir otra pestaña con otro nombre para simular a una segunda persona.
+4. Mira la terminal. Al prender, el servidor muestra dos links:
+
+   ```
+   Link para invitados:   http://localhost:8000/
+   Link de ORGANIZADOR (secreto, no lo compartas): http://localhost:8000/?organizador=...
+   ```
+
+   - **Tú (Felipe) entras con el link de ORGANIZADOR.** Arriba a la derecha dirá
+     «Entraste como organizador». Escribe tu nombre, aprueba a los agentes de prueba
+     (Lumi, Rocco y Tina) y escribe un mensaje.
+   - Las demás personas entran con el link para invitados. Pueden hablar y pedir la palabra,
+     pero no ven los botones de aprobar ni de modo rápido, y el servidor no las deja hacerlo.
+   - Escribir «Felipe» como nombre **no** te hace organizador. Solo el link secreto.
+   - Puedes abrir otra pestaña con el link de invitado para ver cómo lo ve otra persona.
 
 5. Para correr las pruebas:
 
@@ -90,6 +101,19 @@ Necesitas Python 3.11 o más nuevo. Todo es local: no usa claves, ni APIs pagas,
    ```
 
 Para apagar el servidor: `Ctrl + C` en la terminal.
+
+### La clave del organizador
+
+- Cada vez que el servidor prende, inventa una clave nueva. El link de organizador anterior deja de servir.
+  (Con `--reload`, la clave también cambia cuando guardas un archivo.)
+- Si quieres una clave fija, ponla antes de prender el servidor:
+
+  ```bash
+  export SALON_ORGANIZER_TOKEN="una-clave-larga-que-solo-tu-sepas"   # En Windows: set SALON_ORGANIZER_TOKEN=...
+  uvicorn app.server:app --reload
+  ```
+
+- No compartas ese link: quien lo tenga entra como organizador.
 
 Ideas para probar en la página:
 
@@ -128,9 +152,16 @@ Cómo fluye todo:
   - Una persona puede interrumpir a un agente. Un agente no interrumpe a nadie.
     Una persona no interrumpe a otra persona: pide la palabra y espera.
   - Cuando una persona escribe en el chat, toma la palabra, habla y la suelta sola.
-  - Un agente nuevo queda **pendiente** hasta que una persona lo aprueba. Pendiente
-    no puede hablar ni leer la conversación. Solo las personas aprueban.
-  - **Modo normal** por defecto. El **modo rápido** solo con autorización de una persona;
+  - **Rol de organizador:** solo el organizador aprueba o rechaza agentes y decide el modo
+    rápido. Felipe es el primer organizador (entra con el link secreto). El orquestador ya
+    permite darle el rol a otra persona o a un agente, y quitarlo (`grant_organizer` y
+    `revoke_organizer`), pero por ahora no hay botón para eso en la página. Reglas: solo un
+    organizador que sea persona puede dar o quitar el rol; ningún agente puede darse el rol
+    ni dárselo a otros; y nunca se le puede quitar el rol al último organizador.
+    El servidor revisa estas reglas en cada acción, no solo esconde los botones.
+  - Un agente nuevo queda **pendiente** hasta que el organizador lo aprueba. Pendiente
+    no puede hablar ni leer la conversación.
+  - **Modo normal** por defecto. El **modo rápido** solo con autorización del organizador;
     mientras nadie decide, el pedido cuenta como negado. Aun en modo rápido, todo
     queda en la transcripción. Una persona puede devolver al agente al modo normal.
   - Un agente puede **reportar un vacío** en la regla; queda resaltado en la transcripción.

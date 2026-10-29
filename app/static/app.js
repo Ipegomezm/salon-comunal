@@ -2,6 +2,11 @@
 let ws = null;
 let yo = null;
 let estado = null;
+// Si la página se abrió con el link secreto (?organizador=...), guardamos la clave
+// y la quitamos de la barra de direcciones para que no quede a la vista.
+const params = new URLSearchParams(location.search);
+const claveOrganizador = params.get("organizador") || "";
+if (claveOrganizador) history.replaceState(null, "", location.pathname);
 const $ = (id) => document.getElementById(id);
 
 function enviar(accion, datos = {}) {
@@ -40,13 +45,18 @@ function dibujar() {
     li.append(el("span", { class: "etiqueta" }, p.kind === "agente" ? "agente" : "persona"));
     if (p.id === s.speaker) li.append(el("span", { class: "etiqueta" }, "habla"));
     else if (s.queue.includes(p.id)) li.append(el("span", { class: "etiqueta" }, "pidió la palabra"));
+    if (p.organizer) li.append(el("span", { class: "etiqueta org" }, "organizador"));
     if (p.mode === "rapido") li.append(el("span", { class: "etiqueta rapido" }, "modo rápido"));
     if (p.autonomous) li.append(el("span", { class: "etiqueta solo" }, "trabajando solo"));
     if (p.personality) li.append(el("div", { class: "desc" }, p.personality));
     if (p.kind === "agente" && p.status === "pendiente") {
-      li.append(el("div", { class: "desc" }, "Espera tu aprobación para entrar."));
-      li.append(el("button", { class: "si", onclick: () => enviar("approve_agent", { agent_id: p.id }) }, "Aprobar"));
-      li.append(el("button", { class: "no", onclick: () => enviar("reject_agent", { agent_id: p.id }) }, "No aprobar"));
+      if (s.you_are_organizer) {
+        li.append(el("div", { class: "desc" }, "Espera tu aprobación para entrar."));
+        li.append(el("button", { class: "si", onclick: () => enviar("approve_agent", { agent_id: p.id }) }, "Aprobar"));
+        li.append(el("button", { class: "no", onclick: () => enviar("reject_agent", { agent_id: p.id }) }, "No aprobar"));
+      } else {
+        li.append(el("div", { class: "desc" }, "Espera aprobación del organizador."));
+      }
     } else if (p.kind === "agente") {
       if (p.autonomous) {
         li.append(el("button", { onclick: () => enviar("end_autonomous", { agent_id: p.id }) }, "Pedir que vuelva"));
@@ -61,8 +71,9 @@ function dibujar() {
     lista.append(li);
   }
 
+  $("rol").textContent = s.you_are_organizer ? "Entraste como organizador" : "Entraste como invitado";
   const pendientes = s.mode_requests.filter((r) => r.status === "pendiente");
-  $("caja-modos").hidden = pendientes.length === 0;
+  $("caja-modos").hidden = !s.you_are_organizer || pendientes.length === 0;
   const modos = $("modos");
   modos.innerHTML = "";
   for (const r of pendientes) {
@@ -102,7 +113,10 @@ $("form-entrar").onsubmit = (ev) => {
   if (!nombre) return;
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws`);
-  ws.onopen = () => { ws.send(JSON.stringify({ action: "join", name: nombre })); $("estado-conexion").textContent = "Conectado"; };
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ action: "join", name: nombre, organizer_token: claveOrganizador }));
+    $("estado-conexion").textContent = "Conectado";
+  };
   ws.onclose = () => { $("estado-conexion").textContent = "Desconectado. Recarga la página."; };
   ws.onmessage = (m) => {
     const d = JSON.parse(m.data);

@@ -14,6 +14,7 @@ ul { list-style: none; padding: 0; margin: 0; }
 #participantes li.pendiente { background: #eee; color: #666; }
 .etiqueta { display: inline-block; font-size: .8em; padding: 1px 7px; border-radius: 10px; background: #ddd; margin-left: 4px; }
 .etiqueta.rapido { background: #ffd6d6; }
+.etiqueta.org { background: #d7f0e0; font-weight: bold; }
 .etiqueta.solo { background: #dbe7ff; }
 .desc { font-size: .85em; color: #555; }
 button { font-size: .95em; padding: 6px 12px; margin: 3px 3px 0 0; border-radius: 6px; border: 1px solid #888; background: #fff; cursor: pointer; }
