@@ -23,6 +23,11 @@ En Salón Comunal participan dos tipos de miembros:
 1. **Agentes de voz:** son agentes integrados al salón. Una persona puede agregar o conectar un agente a la conversación, pero **cada agente necesita aprobación antes de entrar** a la llamada.
 2. **Personas externas:** cualquier persona puede participar directamente en el salón comunal uniéndose a la llamada.
 
+### Cómo invitar a las personas
+
+- **Por link:** se comparte una URL y la persona la abre para unirse a la llamada.
+- **Por Telegram:** el salón puede llamar o enviar una invitación a una persona por Telegram para que se una a la conversación.
+
 Tanto los agentes como las personas forman parte de los **turnos de palabra** y del **contexto compartido**: todos saben qué se ha dicho y hablan por turnos.
 
 ## Interfaz de video
