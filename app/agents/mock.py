@@ -36,6 +36,10 @@ STYLES = {
             "Otra idea loca para «{t}»: mezclarlo con algo que nadie espera, como música o un mapa.",
             "Imaginemos «{t}» dentro de un año, ya funcionando. ¿Qué cosa sorprendería a la gente?",
         ],
+        "to_agent": [
+            "Me gusta lo que dice {a}. Le sumo otra idea: hacerlo en voz alta, como un programa de radio.",
+            "Partiendo de lo de {a}: ¿y si lo probamos al revés, empezando por el final?",
+        ],
         "summary": "Junté tres ideas nuevas para «{task}». La más fuerte: empezar con algo pequeño y divertido.",
     },
     "critica": {
@@ -44,6 +48,10 @@ STYLES = {
             "Ojo con «{t}»: ¿qué pasa si sale mal? Veo un riesgo de que se complique más de la cuenta.",
             "Antes de seguir con «{t}», preguntaría: ¿cómo sabremos si funcionó?",
             "Sobre «{t}»: me falta un dato importante. ¿Quién lo va a usar primero?",
+        ],
+        "to_agent": [
+            "{a}, suena bien, pero ¿cuánto tiempo nos tomaría de verdad?",
+            "Una duda sobre lo de {a}: ¿qué hacemos si a alguien no le funciona?",
         ],
         "summary": "Revisé «{task}». Encontré dos riesgos: falta de tiempo y no medir el resultado.",
     },
@@ -54,13 +62,18 @@ STYLES = {
             "Paso siguiente con «{t}»: hagamos una lista corta y elijamos una sola cosa para hoy.",
             "Para avanzar con «{t}», necesitamos un responsable y una fecha. ¿Quién se anima?",
         ],
+        "to_agent": [
+            "Tomando lo de {a}: anotemos eso como paso uno y sigamos.",
+            "Bien, {a}. Para no perderlo, lo dejo en la lista de pendientes.",
+        ],
         "summary": "Terminé «{task}». Dejé una lista de cinco pasos lista para revisar.",
     },
 }
 
 
 class MockAgent(AgentAdapter):
-    def __init__(self, name: str, style: str, *, asks_fast_mode: bool = False, reports_loopholes: bool = False):
+    def __init__(self, name: str, style: str, *, asks_fast_mode: bool = False, reports_loopholes: bool = False,
+                 reply_to_agents: bool = True):
         if style not in STYLES:
             raise ValueError(f"Estilo desconocido: {style}")
         self.name = name
@@ -68,17 +81,26 @@ class MockAgent(AgentAdapter):
         self.personality = STYLES[style]["personality"]
         self.asks_fast_mode = asks_fast_mode
         self.reports_loopholes = reports_loopholes
+        self.reply_to_agents = reply_to_agents   # también responde a otros agentes
         self._answered_id = 0          # último mensaje de persona ya atendido
         self._turn = 0
         self._task: str | None = None
         self._pending_summary: str | None = None
         self._asked_fast = False
+        self._triggers_checked_id = 0
 
     # --- ayudas ---
     @staticmethod
     def _last_human_message(view: AgentView) -> dict | None:
         for e in reversed(view.transcript):
             if e["kind"] == "mensaje" and e["author_kind"] == "humano":
+                return e
+        return None
+
+    @staticmethod
+    def _last_message(view: AgentView) -> dict | None:
+        for e in reversed(view.transcript):
+            if e["kind"] == "mensaje":
                 return e
         return None
 
@@ -90,13 +112,33 @@ class MockAgent(AgentAdapter):
             return re.search(rf"\b{re.escape(n)}\b", plain) is not None
         return not said(mine) and any(said(n) for n in names if n != mine)
 
-    def _needs_reply(self, view: AgentView) -> bool:
-        m = self._last_human_message(view)
-        if not m or m["id"] <= self._answered_id:
+    def _human_closed_or_addressed_other(self, view: AgentView, m: dict | None) -> bool:
+        if not m:
             return False
         plain = _plain(m["text"])
-        if any(w in plain for w in CLOSING_WORDS) or self._addressed_to_other(view, m["text"]):
-            self._answered_id = m["id"]   # no hace falta responder a este mensaje
+        return any(w in plain for w in CLOSING_WORDS) or self._addressed_to_other(view, m["text"])
+
+    def _needs_reply(self, view: AgentView) -> bool:
+        """¿Hay un mensaje nuevo al que deba responder?
+
+        - Nunca se responde a sí mismo.
+        - A una persona: responde, salvo que diga "gracias"/"listo" o le hable a otro agente.
+        - A otro agente: responde (si `reply_to_agents`), salvo que la última persona
+          haya cerrado el tema o le haya hablado a otro agente.
+        """
+        m = self._last_message(view)
+        if not m or m["id"] <= self._answered_id:
+            return False
+        if m["author_id"] == view.me_id:
+            self._answered_id = m["id"]
+            return False
+        if m["author_kind"] == "humano":
+            if self._human_closed_or_addressed_other(view, m):
+                self._answered_id = m["id"]   # no hace falta responder a este mensaje
+                return False
+            return True
+        if not self.reply_to_agents or self._human_closed_or_addressed_other(view, self._last_human_message(view)):
+            self._answered_id = m["id"]
             return False
         return True
 
@@ -104,7 +146,7 @@ class MockAgent(AgentAdapter):
     def wants_floor(self, view: AgentView) -> bool:
         if view.autonomous:
             # Trabaja por su cuenta: no responde a lo que se diga mientras tanto.
-            m = self._last_human_message(view)
+            m = self._last_message(view)
             if m:
                 self._answered_id = max(self._answered_id, m["id"])
             return False
@@ -120,14 +162,26 @@ class MockAgent(AgentAdapter):
             text, self._pending_summary = self._pending_summary, None
             return AgentReply(text=text, mode=view.my_mode)
 
-        m = self._last_human_message(view)
-        if not m:
+        m = self._last_message(view)
+        if not m or m["author_id"] == view.me_id:
             return AgentReply()
         self._answered_id = m["id"]
-        plain = _plain(m["text"])
-        tpl = STYLES[self.style]["templates"][self._turn % len(STYLES[self.style]["templates"])]
+        from_human = m["author_kind"] == "humano"
+        # Los disparadores (modo rápido, vacíos) solo vienen de personas: se revisa el último
+        # mensaje de una persona que este agente todavía no había revisado.
+        h = self._last_human_message(view)
+        plain = ""
+        if h and h["id"] > self._triggers_checked_id:
+            self._triggers_checked_id = h["id"]
+            plain = _plain(h["text"])
+        style = STYLES[self.style]
+        if from_human:
+            tpl = style["templates"][self._turn % len(style["templates"])]
+            text = tpl.format(t=_topic(m["text"]))
+        else:
+            tpl = style["to_agent"][self._turn % len(style["to_agent"])]
+            text = tpl.format(a=m["author_name"])
         self._turn += 1
-        text = tpl.format(t=_topic(m["text"]))
         reply = AgentReply(text=text, mode=view.my_mode)
 
         if view.my_mode == "rapido":

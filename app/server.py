@@ -20,6 +20,9 @@ TICK_SECONDS = float(os.environ.get("SALON_TICK", "1.5"))  # pausa entre pasos d
 ORGANIZER_GRACE_SECONDS = float(os.environ.get("SALON_ORGANIZER_GRACE", "60"))
 # Habla simulada: segundos por letra que un agente conserva la palabra mientras "habla".
 SPEECH_SECONDS_PER_CHAR = float(os.environ.get("SALON_SPEECH_RATE", "0.055"))
+# Frenos de la conversación entre agentes.
+AGENT_COOLDOWN_SECONDS = float(os.environ.get("SALON_AGENT_COOLDOWN", "8"))
+AGENT_TURN_BUDGET = int(os.environ.get("SALON_AGENT_BUDGET", "6"))
 PORT_HINT = os.environ.get("SALON_URL", "http://localhost:8000")
 
 
@@ -34,7 +37,8 @@ def organizer_token() -> str:
 
 def build_default_room() -> Room:
     """Salón de prueba con tres agentes que esperan aprobación."""
-    room = Room(organizer_grace=ORGANIZER_GRACE_SECONDS, speech_seconds_per_char=SPEECH_SECONDS_PER_CHAR)
+    room = Room(organizer_grace=ORGANIZER_GRACE_SECONDS, speech_seconds_per_char=SPEECH_SECONDS_PER_CHAR,
+                agent_cooldown_seconds=AGENT_COOLDOWN_SECONDS, agent_turn_budget=AGENT_TURN_BUDGET)
     for style in ("creativa", "critica", "practica"):
         room.add_agent(make_mock(style))
     return room
@@ -79,6 +83,8 @@ def handle_action(room: Room, pid: str, msg: dict) -> None:
         room.start_autonomous(msg["agent_id"], msg.get("task", ""), by=pid)
     elif a == "end_autonomous":
         room.end_autonomous(msg["agent_id"], by=pid)
+    elif a == "ack_flag":
+        room.acknowledge_flag(int(msg["flag_id"]), by=pid)
     elif a == "add_agent":
         style = msg.get("style", "creativa")
         if style not in ("creativa", "critica", "practica"):
@@ -143,6 +149,9 @@ def create_app(room: Room | None = None, run_agents: bool = True, token: str | N
             hub.sockets[ws] = pid
             hub.room.check_organizer_presence()
             await hub.broadcast()
+            summary = hub.room.pop_return_summary(pid)
+            if summary:
+                await ws.send_json({"type": "return_summary", "summary": summary})
             while True:
                 msg = await ws.receive_json()
                 try:

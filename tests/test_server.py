@@ -77,3 +77,26 @@ def test_grant_organizer_is_not_exposed_over_websocket():
             ws.send_json({"action": "grant_organizer", "target": st["you"]})
             err = ws.receive_json()
             assert err["type"] == "error" and "desconocida" in err["message"]
+
+
+def test_organizer_gets_summary_on_return():
+    app = create_app(build_default_room(), run_agents=False, token=TOKEN)
+    with TestClient(app) as client:
+        with client.websocket_connect("/ws") as guest:
+            _join(guest, "Ana")
+            _state(guest)
+            with client.websocket_connect("/ws") as org:
+                _join(org, "Felipe", TOKEN)
+                _state(org)
+            guest.send_json({"action": "say", "text": "Hola, ¿hay alguien?"})
+            with client.websocket_connect("/ws") as org:
+                _join(org, "Felipe", TOKEN)
+                got = None
+                for _ in range(5):
+                    m = org.receive_json()
+                    if m["type"] == "return_summary":
+                        got = m["summary"]
+                        break
+                assert got is not None
+                assert any(x["author"] == "Ana" for x in got["messages"])
+                assert len(got["pending_agents"]) == 3

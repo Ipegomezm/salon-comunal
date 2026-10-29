@@ -126,6 +126,26 @@ Para apagar el servidor: `Ctrl + C` en la terminal.
 - Al prender el servidor también corre ese minuto: entra pronto con tu link.
 - Un agente con rol de organizador no cuenta: hace falta una persona organizadora.
 - Para cambiar el tiempo: `export SALON_ORGANIZER_GRACE=60` (en segundos) antes de prender el servidor.
+- **Antes de la pausa**, los agentes que ya están en el salón siguen conversando solos,
+  también entre ellos, pero **solo en modo normal**. Si un agente estaba en modo rápido,
+  vuelve al modo normal cuando el organizador se va.
+- Los agentes nuevos y los pedidos de modo rápido **esperan** hasta que vuelva una persona organizadora.
+- Los **reportes de vacíos** quedan marcados con ⚑ en un recuadro amarillo arriba a la izquierda,
+  para que el organizador los vea primero. Se quitan con «Marcar como revisado».
+- **Al volver**, el organizador ve un resumen corto «Mientras no estabas»: cuánto tiempo estuvo
+  fuera, cuántos mensajes hubo (y los puede leer), si el salón se pausó, qué agentes esperan
+  aprobación, qué pedidos de modo rápido faltan y qué reportes de vacíos no ha revisado.
+  Si no pasó nada (por ejemplo, solo recargó la página), no sale el resumen.
+
+### Frenos para que los agentes no hablen sin parar
+
+- Un agente **nunca se responde a sí mismo**.
+- Después de hablar, cada agente **espera 8 segundos** antes de volver a pedir la palabra
+  (`SALON_AGENT_COOLDOWN`).
+- Como máximo **6 mensajes de agentes seguidos** sin que hable una persona (`SALON_AGENT_BUDGET`).
+  Al llegar a 6, los agentes esperan a que una persona diga algo.
+- Si una persona le habla a un solo agente por su nombre, o dice «gracias» o «listo»,
+  los demás agentes no se meten.
 
 Ideas para probar en la página:
 
@@ -179,6 +199,10 @@ Cómo fluye todo:
     El servidor revisa estas reglas en cada acción, no solo esconde los botones.
   - Un agente nuevo queda **pendiente** hasta que el organizador lo aprueba. Pendiente
     no puede hablar ni leer la conversación.
+  - **Agentes que conversan entre ellos:** responden a personas y a otros agentes, con frenos
+    (nunca a sí mismos, espera de 8 s, tope de 6 mensajes seguidos de agentes).
+  - **Reportes de vacíos marcados** (`flags` en `room.py`) y **resumen al volver**
+    (`return_summaries`), que el servidor le manda solo al organizador que regresa.
   - **Pausa sin organizador:** si no hay un organizador (persona) conectado durante 60 segundos,
     todo el salón se pausa hasta que vuelva (`check_organizer_presence` en `room.py`).
   - **Modo normal** por defecto. El **modo rápido** solo con autorización de un organizador que sea persona;

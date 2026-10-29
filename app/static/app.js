@@ -95,6 +95,16 @@ function dibujar() {
     ));
   }
 
+  const vacios = $("vacios");
+  vacios.innerHTML = "";
+  $("caja-vacios").hidden = !(s.flags && s.flags.length);
+  for (const f of s.flags || []) {
+    vacios.append(el("li", {},
+      el("div", {}, f.author + ": " + f.text),
+      el("button", { onclick: () => enviar("ack_flag", { flag_id: f.id }) }, "Marcar como revisado"),
+    ));
+  }
+
   Recuadros.actualizar($("recuadros"), s, yo);
   const mensajes = s.transcript.filter((e) => e.kind === "mensaje");
   if (ultimoMensajeVisto === null) {
@@ -145,11 +155,26 @@ $("form-entrar").onsubmit = (ev) => {
       yo = d.you; estado = d.state;
       $("entrar").hidden = true; $("salon").hidden = false;
       dibujar();
+    } else if (d.type === "return_summary") {
+      mostrarResumen(d.summary);
     } else if (d.type === "error") {
       $("error").textContent = d.message;
     }
   };
 };
+
+function mostrarResumen(r) {
+  const lineas = $("resumen-lineas");
+  lineas.innerHTML = "";
+  for (const l of r.lines) lineas.append(el("li", {}, l));
+  for (const f of r.flags) lineas.append(el("li", { class: "vacio" }, "⚑ " + f.author + ": " + f.text));
+  const msgs = $("resumen-mensajes");
+  msgs.innerHTML = "";
+  for (const m of r.messages) msgs.append(el("li", {}, el("strong", {}, m.author + ": "), m.text));
+  $("resumen-detalle").hidden = r.messages.length === 0;
+  $("resumen").hidden = false;
+}
+$("btn-resumen-ok").onclick = () => { $("resumen").hidden = true; };
 
 $("form-mensaje").onsubmit = (ev) => {
   ev.preventDefault();

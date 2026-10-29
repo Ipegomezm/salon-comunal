@@ -36,6 +36,9 @@ class ModeRequest:
 # Si no hay un organizador (persona) conectado durante este tiempo, el salón se pausa.
 # Es también el margen para recargar la página o si se cae la conexión.
 DEFAULT_ORGANIZER_GRACE_SECONDS = 60.0
+# Frenos de la conversación entre agentes (configurables).
+DEFAULT_AGENT_COOLDOWN_SECONDS = 8.0
+DEFAULT_AGENT_TURN_BUDGET = 6
 
 
 class Room:
@@ -45,8 +48,23 @@ class Room:
         organizer_grace: float = DEFAULT_ORGANIZER_GRACE_SECONDS,
         clock: Callable[[], float] = time.monotonic,
         speech_seconds_per_char: float = 0.0,
+        agent_cooldown_seconds: float = DEFAULT_AGENT_COOLDOWN_SECONDS,
+        agent_turn_budget: int = DEFAULT_AGENT_TURN_BUDGET,
     ) -> None:
         self.name = name
+        # Freno para que los agentes no conversen sin fin entre ellos:
+        # - cada agente espera `agent_cooldown_seconds` después de hablar antes de pedir la palabra;
+        # - como máximo `agent_turn_budget` mensajes de agentes seguidos sin que hable una persona.
+        self.agent_cooldown_seconds = agent_cooldown_seconds
+        self.agent_turn_budget = agent_turn_budget
+        self._last_spoke_at: dict[str, float] = {}
+        # Reportes de vacíos marcados para que el organizador los vea primero.
+        self.flags: list[dict] = []
+        self._flag_ids = itertools.count(1)
+        # Resumen para el organizador que vuelve.
+        self._had_organizer = False
+        self._away: dict | None = None
+        self.return_summaries: dict[str, dict] = {}
         # Habla simulada (sin audio todavía): un agente conserva la palabra mientras "dice"
         # su texto. 0 = suelta la palabra de inmediato (útil en pruebas).
         self.speech_seconds_per_char = speech_seconds_per_char
@@ -125,6 +143,9 @@ class Room:
         if self.human_organizers_present():
             was_waiting = self._organizer_absent_since is not None
             self._organizer_absent_since = None
+            self._had_organizer = True
+            if self._away is not None:
+                self._make_return_summary(now)
             if self.paused:
                 self.paused = False
                 self._log(ctx.SYSTEM, "Volvió un organizador. El salón sigue.")
@@ -132,13 +153,111 @@ class Room:
             return was_waiting
         if self._organizer_absent_since is None:
             self._organizer_absent_since = now
+            if self._had_organizer and self._away is None:
+                last = self.context.entries[-1].id if self.context.entries else 0
+                self._away = {"since": now, "since_entry": last, "paused": False}
+            self._force_normal_mode()
             return True
         if not self.paused and now - self._organizer_absent_since >= self.organizer_grace:
             self.paused = True
+            if self._away is not None:
+                self._away["paused"] = True
             self._log(ctx.SYSTEM, f"No hay un organizador conectado desde hace "
                                   f"{int(self.organizer_grace)} segundos. El salón queda en pausa.")
             return True
         return False
+
+    def _force_normal_mode(self) -> None:
+        """Sin organizador conectado, los agentes hablan solo en modo normal."""
+        for a in self.registry.active_agents():
+            if a.mode == Mode.FAST:
+                a.mode = Mode.NORMAL
+                self._log(ctx.MODE, f"{a.name} volvió al modo normal porque no hay un organizador conectado.")
+
+    def _make_return_summary(self, now: float) -> None:
+        """Arma el resumen de lo que pasó mientras no había organizador."""
+        away, self._away = self._away, None
+        msgs = [e for e in self.context.entries if e.kind == ctx.MESSAGE and e.id > away["since_entry"]]
+        pending_agents = [p.name for p in self.registry.all() if p.is_agent and p.status == Status.PENDING]
+        pending_modes = [{"agent": self._get(r.agent_id).name, "reason": r.reason}
+                         for r in self.mode_requests.values() if r.status == "pendiente"]
+        flags = [f for f in self.flags if not f["reviewed"]]
+        if not (msgs or pending_agents or pending_modes or flags or away["paused"]):
+            return  # no hay nada que contar (por ejemplo, solo recargó la página)
+        secs = int(now - away["since"])
+        dur = f"{secs} segundos" if secs < 120 else f"{secs // 60} minutos"
+        lines = [f"Estuviste fuera unos {dur}."]
+        if msgs:
+            counts: dict[str, int] = {}
+            for e in msgs:
+                counts[e.author_name] = counts.get(e.author_name, 0) + 1
+            detail = ", ".join(f"{n} {c}" for n, c in counts.items())
+            lines.append(f"Mensajes mientras no estabas: {len(msgs)} ({detail}).")
+        else:
+            lines.append("Nadie habló mientras no estabas.")
+        if away["paused"]:
+            lines.append("El salón se pausó porque no había un organizador conectado.")
+        lines.append("Agentes que esperan tu aprobación: " + (", ".join(pending_agents) if pending_agents else "ninguno") + ".")
+        lines.append("Pedidos de modo rápido por decidir: " + (
+            "; ".join(f"{m['agent']} ({m['reason']})" for m in pending_modes) if pending_modes else "ninguno") + ".")
+        lines.append(f"Reportes de vacíos sin revisar: {len(flags)}." if flags else "Reportes de vacíos sin revisar: ninguno.")
+        summary = {
+            "lines": lines,
+            "messages": [{"author": e.author_name, "text": e.text, "mode": e.mode} for e in msgs],
+            "pending_agents": pending_agents,
+            "pending_mode_requests": pending_modes,
+            "flags": [dict(f) for f in flags],
+            "paused": away["paused"],
+            "away_seconds": secs,
+        }
+        for p in self.organizers():
+            if p.is_human:
+                self.return_summaries[p.id] = summary
+
+    def pop_return_summary(self, pid: str) -> dict | None:
+        return self.return_summaries.pop(pid, None)
+
+    def acknowledge_flag(self, flag_id: int, by: str) -> None:
+        """Un organizador marca un reporte de vacío como revisado."""
+        org = self._organizer(by)
+        for f in self.flags:
+            if f["id"] == int(flag_id):
+                if f["reviewed"]:
+                    raise RoomError("Ese reporte ya fue revisado.")
+                f["reviewed"] = True
+                self._log(ctx.SYSTEM, f"{org.name} revisó el reporte de vacío de {f['author']}.")
+                return
+        raise RoomError("Ese reporte no existe.")
+
+    def _agent_messages_since_human(self) -> int:
+        n = 0
+        for e in reversed(self.context.entries):
+            if e.kind != ctx.MESSAGE:
+                continue
+            if e.author_kind == Kind.HUMAN.value:
+                break
+            n += 1
+        return n
+
+    def agent_budget_left(self) -> int:
+        return max(0, self.agent_turn_budget - self._agent_messages_since_human())
+
+    def _last_message_author(self) -> str | None:
+        for e in reversed(self.context.entries):
+            if e.kind == ctx.MESSAGE:
+                return e.author_id
+        return None
+
+    def _agent_may_ask(self, agent_id: str) -> bool:
+        """Frenos: nunca se responde a sí mismo, espera entre mensajes y tope de turnos."""
+        if self.agent_budget_left() <= 0:
+            return False
+        if self._last_message_author() == agent_id:
+            return False
+        last = self._last_spoke_at.get(agent_id)
+        if last is not None and self.clock() - last < self.agent_cooldown_seconds:
+            return False
+        return True
 
     def _agent(self, pid: str) -> Participant:
         p = self._get(pid)
@@ -312,6 +431,8 @@ class Room:
             self._log(ctx.MODE, f"Se bloqueó un mensaje de {p.name} en modo rápido: no tiene autorización.")
             raise RoomError(f"{p.name} no tiene autorización para el modo rápido.")
         self._log(ctx.MESSAGE, text, p, mode.value)
+        if p.is_agent:
+            self._last_spoke_at[pid] = self.clock()
 
     def speak_now(self, pid: str, text: str) -> None:
         """Atajo para personas en el chat de texto: toma la palabra, habla y la suelta.
@@ -393,7 +514,10 @@ class Room:
 
     def report_loophole(self, pid: str, description: str) -> None:
         p = self._active(pid)
-        self._log(ctx.LOOPHOLE, f"{p.name} reporta un vacío en la regla: {description}", p)
+        e = self._log(ctx.LOOPHOLE, f"{p.name} reporta un vacío en la regla: {description}", p)
+        # Queda marcado para que el organizador lo vea primero.
+        self.flags.append({"id": next(self._flag_ids), "entry_id": e.id, "author": p.name,
+                           "text": description, "reviewed": False})
 
     # ---------- trabajo autónomo ----------
     def start_autonomous(self, agent_id: str, task: str, by: str) -> None:
@@ -446,8 +570,12 @@ class Room:
             return False
         changed = False
         # 1) Los agentes en fila revisan si su pedido sigue siendo relevante.
+        # Si ya se gastaron los turnos de agentes, retiran su pedido hasta que hable una persona.
+        budget_spent = self.agent_budget_left() <= 0
         for agent_id in list(self.turns.queue):
-            if self._get(agent_id).is_agent and not self.adapters[agent_id].still_relevant(self.view_for(agent_id)):
+            if not self._get(agent_id).is_agent:
+                continue
+            if budget_spent or not self.adapters[agent_id].still_relevant(self.view_for(agent_id)):
                 self.withdraw_floor(agent_id)
                 changed = True
 
@@ -464,7 +592,7 @@ class Room:
         if sp and self._get(sp).is_agent:
             agent = self._get(sp)
             adapter = self.adapters[sp]
-            if not adapter.still_relevant(self.view_for(sp)):
+            if budget_spent or not adapter.still_relevant(self.view_for(sp)):
                 self.turns.release(sp)
                 self._log(ctx.TURN, f"{agent.name} cedió la palabra sin hablar: ya no era relevante.")
                 self._log_speaker_change()
@@ -493,6 +621,8 @@ class Room:
         for agent in self.registry.active_agents():
             if agent.id in self.turns.queue or agent.id == self.turns.speaker:
                 continue
+            if not self._agent_may_ask(agent.id):
+                continue
             if self.adapters[agent.id].wants_floor(self.view_for(agent.id)):
                 self.request_floor(agent.id)
                 changed = True
@@ -515,6 +645,8 @@ class Room:
             "paused": self.paused,
             "seconds_until_pause": self.seconds_until_pause(),
             "speech_seconds_per_char": self.speech_seconds_per_char,
+            "flags": [f for f in self.flags if not f["reviewed"]] if is_org else [],
+            "agent_budget_left": self.agent_budget_left(),
             "you_can_decide_fast_mode": can_decide_fast,
             "room": self.name,
             "participants": [p.to_dict() for p in self.registry.all()

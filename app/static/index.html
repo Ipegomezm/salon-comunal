@@ -21,6 +21,10 @@
   <div id="aviso-pausa" hidden></div>
   <main id="salon" hidden>
     <aside>
+      <div id="caja-vacios" hidden>
+        <h2>⚑ Reportes de vacíos: revisar primero</h2>
+        <ul id="vacios"></ul>
+      </div>
       <h2>Quién tiene la palabra</h2>
       <p id="palabra" class="grande">Nadie</p>
       <p id="fila"></p>
@@ -46,6 +50,12 @@
     </aside>
 
     <section id="conversacion">
+      <div id="resumen" hidden>
+        <h2>Mientras no estabas</h2>
+        <ul id="resumen-lineas"></ul>
+        <details id="resumen-detalle"><summary>Ver los mensajes</summary><ol id="resumen-mensajes"></ol></details>
+        <button id="btn-resumen-ok">Entendido</button>
+      </div>
       <div id="recuadros" aria-label="Participantes"></div>
       <h2>Conversación</h2>
       <ol id="transcripcion"></ol>
