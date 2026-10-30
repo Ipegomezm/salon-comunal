@@ -3,6 +3,7 @@ let ws = null;
 let yo = null;
 let estado = null;
 let ultimoMensajeVisto = null;   // para animar solo los mensajes nuevos
+let vozAgentes = { activa: false, decir: () => null };   // voz de los agentes (si SALON_VOZ=1)
 let avisoBano = null;            // { name, until } mientras se muestra el aviso grande de «Baño»
 
 function pintarAvisoBano() {
@@ -134,7 +135,16 @@ function dibujar() {
     ultimoMensajeVisto = mensajes.length ? mensajes[mensajes.length - 1].id : 0;
   } else {
     for (const e of mensajes) {
-      if (e.id > ultimoMensajeVisto) { Recuadros.alHablar(e, s.speech_seconds_per_char); ultimoMensajeVisto = e.id; }
+      if (e.id > ultimoMensajeVisto) {
+        ultimoMensajeVisto = e.id;
+        // Agente con voz local: las ondas siguen el inicio y el fin reales de la voz.
+        const conVoz = vozAgentes.activa && e.author_kind === "agente" && vozAgentes.decir(e.author_id, e.text, {
+          alEmpezar: () => Recuadros.vozEmpezo(e.author_id),
+          alPalabra: () => Recuadros.vozPalabra(e.author_id),
+          alTerminar: () => Recuadros.vozTermino(e.author_id),
+        });
+        if (!conVoz) Recuadros.alHablar(e, s.speech_seconds_per_char);
+      }
     }
   }
 
@@ -221,6 +231,8 @@ $("btn-interrumpir").onclick = () => enviar("interrupt");
   let cfg = { voz: false };
   try { cfg = await (await fetch("/api/config")).json(); } catch (e) { /* sin voz */ }
   if (!cfg.voz) return;
+  vozAgentes = await VozAgentes.preparar(cfg, window);
+  $("voz-agentes").textContent = vozAgentes.mensaje;
   const Ctor = Voz.constructorDelNavegador(window);
   const aviso = (t) => { $("voz-mensaje").textContent = t; };
   $("caja-voz").hidden = false;

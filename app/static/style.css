@@ -103,3 +103,4 @@ input, select { font-size: 1em; padding: 6px; }
 /* Voz (prototipo) */
 #caja-voz { margin-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 #voz-mensaje { font-size: .95em; color: #333; }
+#voz-agentes { flex-basis: 100%; font-size: .95em; color: #333; }

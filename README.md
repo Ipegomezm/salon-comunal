@@ -175,7 +175,9 @@ Para apagar el servidor: `Ctrl + C` en la terminal.
   - Hace falta Chrome 139 o más nuevo. La primera vez puede pedir **«Bajar español»**:
     baja el idioma a tu computadora una sola vez (no manda tu audio).
   - Las pruebas (`tests/test_voice_rule.py`) revisan que no exista ningún camino a la nube.
-- Todavía no hay voz para los agentes (que hablen en voz alta). Eso viene después.
+- **Los agentes leen sus mensajes en voz alta** solo con voces en español instaladas en tu
+  computadora. Nunca con voces de internet (como las «Google» de Chrome). Si no hay ninguna,
+  sale un aviso y siguen solo en texto.
 
 ### Frenos para que los agentes no hablen sin parar
 
@@ -219,6 +221,7 @@ app/
   server.py           Servidor FastAPI: página web + WebSocket
   static/             Página en HTML, CSS y JavaScript
     voice.js          Voz (prototipo): dictar, solo en tu computadora
+    agent_voice.js    Voz de los agentes: leer en voz alta, solo con voces locales
     tiles.js          Recuadros tipo Zoom (etapa 2): luz amarilla, ondas de sonido, niveles de voz
 tests/                Pruebas con pytest
 scripts/captura.py    Toma una captura de la página (opcional)

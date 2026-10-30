@@ -11,6 +11,7 @@ const Recuadros = (() => {
   const recuadros = new Map();     // id -> { el, barras, ... }
   const fuentes = new Map();       // id -> función(ahora) => nivel 0..1, o null cuando terminó
   const nivelesReales = new Map(); // id -> { nivel, t }
+  const vocesSonando = new Map();  // id -> { pulso } mientras su voz suena de verdad (inicio/fin reales)
 
   function iniciales(nombre) {
     const partes = nombre.trim().split(/\s+/);
@@ -125,9 +126,20 @@ const Recuadros = (() => {
     nivelesReales.set(id, { nivel: Math.max(0, Math.min(1, nivel)), t: performance.now() });
   }
 
+  // Voz real de un agente: las ondas empiezan y terminan con los eventos de la voz.
+  function vozEmpezo(id) { fuentes.delete(id); vocesSonando.set(id, { pulso: performance.now() }); }
+  function vozPalabra(id) { const v = vocesSonando.get(id); if (v) v.pulso = performance.now(); }
+  function vozTermino(id) { vocesSonando.delete(id); }
+
   function nivelDe(id, ahora) {
     const real = nivelesReales.get(id);
     if (real && ahora - real.t < 300) return real.nivel;
+    const voz = vocesSonando.get(id);
+    if (voz) {
+      // Cada palabra da un empujón; entre palabras baja un poco (sin bajar a cero).
+      const empuje = Math.exp(-(ahora - voz.pulso) / 220);
+      return Math.min(1, 0.3 + 0.65 * empuje * (0.8 + 0.2 * Math.sin(ahora / 60)));
+    }
     const f = fuentes.get(id);
     if (!f) return null;
     const n = f(ahora);
@@ -156,5 +168,5 @@ const Recuadros = (() => {
   }
   requestAnimationFrame(cuadro);
 
-  return { actualizar, alHablar, ponerNivel };
+  return { actualizar, alHablar, ponerNivel, vozEmpezo, vozPalabra, vozTermino };
 })();

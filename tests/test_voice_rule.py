@@ -69,3 +69,30 @@ def test_no_cloud_speech_code_anywhere_in_app():
         for banned in ("googleapis", "speech.googleapis", "api.openai.com", "elevenlabs.io",
                        "deepgram.com", "cognitiveservices"):
             assert banned not in text, f"{path.name} no debe contener {banned}"
+
+
+# --- Voz de los agentes: solo voces locales (localService === true) ---
+
+AGENT_JS = (ROOT / "app" / "static" / "agent_voice.js").read_text(encoding="utf-8")
+
+
+def test_agent_voice_has_no_network_and_requires_local_voices():
+    code = _code_only(AGENT_JS)
+    for banned in ("fetch(", "XMLHttpRequest", "WebSocket", "http://", "https://", "sendBeacon"):
+        assert banned not in code, f"agent_voice.js no debe contener {banned!r}"
+    assert "v.localService === true" in code
+    news = [m.start() for m in re.finditer(r"new\s+Utt\s*\(", code)]
+    assert len(news) == 1, "solo un lugar crea lo que se lee en voz alta"
+    before = code[max(0, news[0] - 200):news[0]]
+    after = code[news[0]:news[0] + 120]
+    assert "if (!esLocalEnEspanol(voz)" in before   # nunca sin voz local elegida
+    assert "u.voice = voz" in after
+    assert "if (!cfg || cfg.voz !== true) return apagada" in code
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node no está instalado")
+def test_agent_voice_behavior_only_local_voices():
+    out = subprocess.run(["node", str(ROOT / "tests" / "js" / "voz_agentes_prueba.js")],
+                         capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert "OK voz de agentes solo local" in out.stdout
