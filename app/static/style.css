@@ -99,3 +99,7 @@ input, select { font-size: 1em; padding: 6px; }
 /* Aviso grande de «Baño» (últimos 5 minutos) */
 #aviso-bano { margin: 12px 20px 0; padding: 14px 18px; border-radius: 10px; font-size: 1.35em; font-weight: bold;
   text-align: center; background: #ffcf66; border: 3px solid #e07b00; color: #3a2400; }
+
+/* Voz (prototipo) */
+#caja-voz { margin-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+#voz-mensaje { font-size: .95em; color: #333; }

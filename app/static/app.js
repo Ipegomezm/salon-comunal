@@ -216,6 +216,33 @@ $("btn-pedir").onclick = () => enviar("request_floor");
 $("btn-retirar").onclick = () => enviar("withdraw_floor");
 $("btn-soltar").onclick = () => enviar("release_floor");
 $("btn-interrumpir").onclick = () => enviar("interrupt");
+// ---------- Voz (solo si el servidor la encendió con SALON_VOZ=1) ----------
+(async () => {
+  let cfg = { voz: false };
+  try { cfg = await (await fetch("/api/config")).json(); } catch (e) { /* sin voz */ }
+  if (!cfg.voz) return;
+  const Ctor = Voz.constructorDelNavegador(window);
+  const aviso = (t) => { $("voz-mensaje").textContent = t; };
+  $("caja-voz").hidden = false;
+  const r = await Voz.revisar(Ctor);
+  aviso(r.mensaje);
+  $("btn-voz").disabled = r.estado !== "listo";
+  $("btn-voz-bajar").hidden = r.estado !== "descargable";
+  $("btn-voz-bajar").onclick = async () => {
+    aviso(Voz.MENSAJES.bajando);
+    await Voz.bajarIdioma(Ctor);
+    const r2 = await Voz.revisar(Ctor);
+    aviso(r2.mensaje);
+    $("btn-voz").disabled = r2.estado !== "listo";
+    $("btn-voz-bajar").hidden = r2.estado !== "descargable";
+  };
+  $("btn-voz").onclick = () => Voz.escuchar(Ctor, (texto) => {
+    $("mensaje").value = texto;   // tú decides si lo envías
+    $("mensaje").focus();
+    aviso("Revisa el texto y toca «Enviar».");
+  }, aviso);
+})();
+
 $("btn-bano").onclick = () => {
   const yoP = estado && estado.participants.find((p) => p.id === yo);
   enviar(yoP && yoP.away ? "come_back" : "step_away");

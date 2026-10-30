@@ -161,6 +161,22 @@ Para apagar el servidor: `Ctrl + C` en la terminal.
   ejemplo: «Felipe debe volver en 3 minutos o el salón se pausa». Se quita cuando toca «Ya volví».
   - Viene **encendido**. Para apagarlo: `export SALON_AVISO_BANO=0` antes de prender el servidor.
 
+### Voz (prototipo): dictar con la voz
+
+- Viene **apagada**. Para encenderla: `export SALON_VOZ=1` antes de prender el servidor.
+- Con la voz encendida, abajo sale el botón **«🎤 Hablar»**. Dices tu mensaje, el texto
+  aparece en la caja y tú decides si tocas «Enviar».
+- **Regla decidida por Felipe: tu audio se queda solo en tu computadora. Nunca va a Google
+  ni a internet.**
+  - Se usa el reconocimiento del navegador **solo en tu computadora** (`processLocally`).
+  - **No hay plan B en la nube.** Si tu navegador no puede hacerlo en tu computadora,
+    la voz no se usa y sale un aviso en español, por ejemplo: «Tu navegador no puede
+    reconocer la voz solo en tu computadora. Para no mandar tu audio a internet, la voz queda apagada.»
+  - Hace falta Chrome 139 o más nuevo. La primera vez puede pedir **«Bajar español»**:
+    baja el idioma a tu computadora una sola vez (no manda tu audio).
+  - Las pruebas (`tests/test_voice_rule.py`) revisan que no exista ningún camino a la nube.
+- Todavía no hay voz para los agentes (que hablen en voz alta). Eso viene después.
+
 ### Frenos para que los agentes no hablen sin parar
 
 - Un agente **nunca se responde a sí mismo**.
@@ -194,6 +210,7 @@ app/
     mock.py           Agentes de prueba con reglas fijas: creativa, crítica y práctica
   server.py           Servidor FastAPI: página web + WebSocket
   static/             Página en HTML, CSS y JavaScript
+    voice.js          Voz (prototipo): dictar, solo en tu computadora
     tiles.js          Recuadros tipo Zoom (etapa 2): luz amarilla, ondas de sonido, niveles de voz
 tests/                Pruebas con pytest
 scripts/captura.py    Toma una captura de la página (opcional)

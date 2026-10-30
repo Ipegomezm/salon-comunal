@@ -25,6 +25,10 @@ AGENT_COOLDOWN_SECONDS = float(os.environ.get("SALON_AGENT_COOLDOWN", "8"))
 AGENT_TURN_BUDGET = int(os.environ.get("SALON_AGENT_BUDGET", "6"))
 # «Baño»: segundos que el organizador puede estar fuera (con la página abierta) antes de pausar el salón.
 BATHROOM_LIMIT_SECONDS = float(os.environ.get("SALON_LIMITE_BANO", "1500"))
+# Voz (prototipo): dictar con la voz, SOLO en la computadora de cada persona (nunca en la nube).
+# Apagada por defecto. Para encenderla: SALON_VOZ=1
+VOICE_ENABLED = os.environ.get("SALON_VOZ", "0").strip().lower() in ("1", "si", "sí", "true", "on")
+
 # Aviso grande en los últimos 5 minutos del «Baño» del organizador. Encendido por defecto
 # (decidido por Felipe: se queda). Para apagarlo: SALON_AVISO_BANO=0
 BATHROOM_NOTICE = os.environ.get("SALON_AVISO_BANO", "1").strip().lower() not in ("0", "no", "false", "off")
@@ -137,6 +141,10 @@ def create_app(room: Room | None = None, run_agents: bool = True, token: str | N
     @app.get("/")
     async def index():
         return FileResponse(STATIC / "index.html")
+
+    @app.get("/api/config")
+    async def config():
+        return {"voz": VOICE_ENABLED}
 
     @app.get("/api/estado")
     async def estado():
