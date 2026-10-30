@@ -120,6 +120,14 @@ class Room:
             raise RoomError("Estás fuera un rato (Baño). Toca «Ya volví» primero.")
         return p
 
+    def _human_organizer(self, pid: str) -> Participant:
+        """Solo una PERSONA organizadora (nunca un agente organizador, nunca en «Baño»)."""
+        p = self._organizer(pid)
+        if not p.is_human:
+            raise RoomError("Solo una persona organizadora puede hacer esto. Un agente no puede, "
+                            "aunque sea organizador.")
+        return p
+
     def organizers(self) -> list[Participant]:
         return [p for p in self.registry.active() if p.organizer]
 
@@ -403,7 +411,8 @@ class Room:
         self._require_not_paused()
         who = "El salón"
         if added_by is not None:
-            who = self._human(added_by).name
+            # Agregar un agente: solo una persona organizadora. (added_by=None = lo agrega el salón.)
+            who = self._human_organizer(added_by).name
         p = self.registry.add(adapter.name, Kind.AGENT, Status.PENDING, adapter.personality)
         self.adapters[p.id] = adapter
         self._log(ctx.SYSTEM, f"{who} agregó al agente {p.name}. Espera aprobación del organizador.")
@@ -599,8 +608,12 @@ class Room:
         """Una persona (o el mismo agente) devuelve al agente al modo normal."""
         actor = self._active(by)
         agent = self._agent(agent_id)
-        if actor.is_agent and actor.id != agent_id:
-            raise RoomError("Un agente no puede cambiar el modo de otro.")
+        # El mismo agente puede volver solo a modo normal (no es un botón).
+        # Para todos los demás, solo una persona organizadora.
+        if actor.id != agent_id:
+            if actor.is_agent:
+                raise RoomError("Un agente no puede cambiar el modo de otro.")
+            self._human_organizer(by)
         if agent.mode == Mode.NORMAL:
             return
         agent.mode = Mode.NORMAL
@@ -616,7 +629,7 @@ class Room:
     # ---------- trabajo autónomo ----------
     def start_autonomous(self, agent_id: str, task: str, by: str) -> None:
         self._require_not_paused()
-        human = self._human(by)
+        human = self._human_organizer(by)
         agent = self._active(agent_id)
         if not agent.is_agent:
             raise RoomError("Solo los agentes trabajan de forma autónoma aquí.")
@@ -632,8 +645,12 @@ class Room:
         self._require_not_paused()
         actor = self._active(by)
         agent = self._agent(agent_id)
-        if actor.is_agent and actor.id != agent_id:
-            raise RoomError("Un agente no puede terminar el trabajo de otro.")
+        # El mismo agente puede volver por su cuenta al terminar (no es un botón).
+        # Pedirle que vuelva: solo una persona organizadora.
+        if actor.id != agent_id:
+            if actor.is_agent:
+                raise RoomError("Un agente no puede terminar el trabajo de otro.")
+            self._human_organizer(by)
         if not agent.autonomous:
             raise RoomError(f"{agent.name} no está trabajando solo.")
         agent.autonomous, task = False, agent.autonomous_task
@@ -748,6 +765,8 @@ class Room:
             "flags": [f for f in self.flags if not f["reviewed"]] if is_org else [],
             "agent_budget_left": self.agent_budget_left(),
             "you_can_decide_fast_mode": can_decide_fast,
+            # Botones de agentes (trabajar solo, que vuelva, agregar, modo normal): solo persona organizadora.
+            "you_can_manage_agents": can_decide_fast,
             "room": self.name,
             "participants": [self._participant_view(p) for p in self.registry.all()
                              if p.status in (Status.ACTIVE, Status.PENDING)],

@@ -71,11 +71,10 @@ El Camino C (pago) queda aplazado.
 
 ## Otras decisiones
 
-**Única decisión que sigue abierta:** qué botones son solo del organizador.
+**Ya no quedan decisiones abiertas.**
 
-1. **Botones solo para el organizador.** Hoy cualquier persona puede: mandar a un agente a trabajar solo, pedir que vuelva, agregar agentes de prueba y volver un agente a modo normal.
+1. **Botones solo para el organizador. Decidido:** estos 4 botones son solo para una **persona** organizadora (Felipe), nunca para un agente organizador: «Mandar a trabajar solo», «Pedir que vuelva», «Agregar agente de prueba» y «Volver a modo normal». *(Hecho.)*
    - **Agentes que trabajan solos. Decidido:** cuando un agente termina su tarea, vuelve solo al salón y avisa que volvió. Y Felipe puede llamarlo cuando quiera para ver dónde va. *(Todavía no está hecho.)*
-   - **Sigue abierto:** qué botones son solo del organizador. Por ahora no se cambia ningún botón.
 2. **Aviso grande de «Baño».** Está **encendido**: en los últimos 5 minutos sale arriba para todos. **Decidido: se queda.**
 3. **Frenos de los agentes.** Hoy: cada agente espera **8 segundos** entre mensajes, y como máximo **6 mensajes seguidos** de agentes sin que hable una persona. **Decidido: la espera de 8 segundos se queda por ahora y se ajusta después según conversaciones reales. El tope de 6 mensajes también se queda.**
 4. **Reloj naranja.** Se pone naranja para **cualquier** persona en «Baño». **Decidido: se sigue mostrando a todos durante el Baño (como hoy).**

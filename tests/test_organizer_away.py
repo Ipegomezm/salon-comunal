@@ -117,7 +117,7 @@ def test_pending_items_wait_for_human_organizer():
     r, felipe, ana, agents = make_room(clock)
     r.leave(felipe.id)
     r.check_organizer_presence()
-    newbie = r.add_agent(make_mock("creativa", "Nico"), added_by=ana.id)
+    newbie = r.add_agent(make_mock("creativa", "Nico"))  # quiere entrar (lo agrega el salón)
     req = r.request_fast_mode(agents["Rocco"].id, "coordinar")
     with pytest.raises(RoomError):
         r.approve_agent(newbie.id, by=ana.id)
@@ -155,7 +155,7 @@ def test_return_summary():
     r.check_organizer_presence()
     clock.t += 1
     r.speak_now(ana.id, "Necesito que vayan más rápido, ¿hay algún truco?")
-    r.add_agent(make_mock("creativa", "Nico"), added_by=ana.id)
+    r.add_agent(make_mock("creativa", "Nico"))  # quiere entrar (lo agrega el salón)
     run(r, clock, 80)                                       # pasa el minuto: se pausa
     assert r.paused
     felipe2 = r.add_human("Felipe", organizer=True)

@@ -33,6 +33,8 @@ with sync_playwright() as p:
         time.sleep(0.3)
     org.fill("#mensaje", "¿Cómo armamos el grupo de estudio?")
     org.click("#form-mensaje button")
+    org.fill("#nombre-agente", "Nico")            # solo la persona organizadora agrega agentes
+    org.click("#form-agente button")
     time.sleep(2)
     org.close()                                   # Felipe se va
 
@@ -40,8 +42,6 @@ with sync_playwright() as p:
     entrar(ana, base, "Ana")
     ana.fill("#mensaje", "Necesito que vayan más rápido, ¿hay algún truco?")
     ana.click("#form-mensaje button")
-    ana.fill("#nombre-agente", "Nico")
-    ana.click("#form-agente button")
     time.sleep(20)                                # los agentes siguen conversando
 
     org2 = browser.new_page(viewport={"width": 1366, "height": 1000})

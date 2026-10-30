@@ -109,7 +109,7 @@ def test_organizer_on_bano_cannot_decide():
     r, felipe, ana, agents = make_room(clock)
     r.step_away(felipe.id)
     r.check_organizer_presence()
-    newbie = r.add_agent(make_mock("creativa", "Nico"), added_by=ana.id)
+    newbie = r.add_agent(make_mock("creativa", "Nico"))  # quiere entrar (lo agrega el salón)
     req = r.request_fast_mode(agents["Rocco"].id, "x")
     with pytest.raises(RoomError):
         r.approve_agent(newbie.id, by=felipe.id)

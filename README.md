@@ -240,7 +240,11 @@ Cómo fluye todo:
     Una persona no interrumpe a otra persona: pide la palabra y espera.
   - Cuando una persona escribe en el chat, toma la palabra, habla y la suelta sola.
   - **Rol de organizador:** solo el organizador aprueba o rechaza agentes y decide el modo
-    rápido. Felipe es el primer organizador (entra con el link secreto). El orquestador ya
+    rápido. Además, **solo una persona organizadora** (Felipe, nunca un agente organizador)
+    puede usar estos 4 botones: «Mandar a trabajar solo», «Pedir que vuelva», «Agregar un
+    agente de prueba» y «Volver a modo normal». Los demás no los ven, y si mandan la acción
+    igual, el servidor la rechaza con un mensaje claro. Un agente sí puede volver solo a
+    modo normal o terminar su propio trabajo autónomo (eso no es un botón). Felipe es el primer organizador (entra con el link secreto). El orquestador ya
     permite darle el rol a otra persona o a un agente, y quitarlo (`grant_organizer` y
     `revoke_organizer`), pero por ahora no hay botón para eso en la página. Reglas: solo un
     organizador que sea persona puede dar o quitar el rol; ningún agente puede darse el rol

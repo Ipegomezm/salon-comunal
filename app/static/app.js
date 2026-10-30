@@ -47,6 +47,9 @@ function dibujar() {
   // En «Baño» el organizador no aprueba ni decide: se esconden esos botones.
   const yoFuera = !!(s.participants.find((p) => p.id === yo) || {}).away;
   const puedoOrganizar = s.you_are_organizer && !yoFuera;
+  // Botones de agentes: solo persona organizadora (y no en «Baño»).
+  const puedoManejarAgentes = s.you_can_manage_agents && !yoFuera;
+  $("caja-agregar").hidden = !puedoManejarAgentes;
   const aviso = $("aviso-pausa");
   if (s.paused) {
     aviso.hidden = false; aviso.className = "pausa";
@@ -92,7 +95,7 @@ function dibujar() {
       } else {
         li.append(el("div", { class: "desc" }, "Espera aprobación del organizador."));
       }
-    } else if (p.kind === "agente") {
+    } else if (p.kind === "agente" && puedoManejarAgentes) {
       if (p.autonomous) {
         li.append(el("button", { onclick: () => enviar("end_autonomous", { agent_id: p.id }) }, "Pedir que vuelva"));
       } else {
