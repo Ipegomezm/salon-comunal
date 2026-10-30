@@ -69,14 +69,16 @@ El Camino C (pago) queda aplazado.
 
 ---
 
-## Otras decisiones para mañana
+## Otras decisiones
+
+**Única decisión que sigue abierta:** qué botones son solo del organizador.
 
 1. **Botones solo para el organizador.** Hoy cualquier persona puede: mandar a un agente a trabajar solo, pedir que vuelva, agregar agentes de prueba y volver un agente a modo normal.
    - **Agentes que trabajan solos. Decidido:** cuando un agente termina su tarea, vuelve solo al salón y avisa que volvió. Y Felipe puede llamarlo cuando quiera para ver dónde va. *(Todavía no está hecho.)*
    - **Sigue abierto:** qué botones son solo del organizador. Por ahora no se cambia ningún botón.
 2. **Aviso grande de «Baño».** Está **encendido**: en los últimos 5 minutos sale arriba para todos. **Decidido: se queda.**
-3. **Frenos de los agentes.** Hoy: cada agente espera **8 segundos** entre mensajes, y como máximo **6 mensajes seguidos** de agentes sin que hable una persona. ¿Te parecen bien estos números?
-4. **Reloj naranja.** Hoy se pone naranja para **cualquier** persona en «Baño». ¿Solo en tu recuadro?
-5. **Reportes de vacíos durante «Baño».** Hoy no se pueden marcar como revisados mientras estás en «Baño». ¿Está bien así?
-6. **Copiar el proyecto a tu computadora.** Hoy está solo en mi computadora. ¿Te lo copio a la tuya? ¿En qué carpeta?
-7. **Subir a GitHub.** ¿Subo el código a tu repositorio `salon-comunal`? Para eso necesito tu OK y reconectar GitHub.
+3. **Frenos de los agentes.** Hoy: cada agente espera **8 segundos** entre mensajes, y como máximo **6 mensajes seguidos** de agentes sin que hable una persona. **Decidido: la espera de 8 segundos se queda por ahora y se ajusta después según conversaciones reales. El tope de 6 mensajes también se queda.**
+4. **Reloj naranja.** Se pone naranja para **cualquier** persona en «Baño». **Decidido: se sigue mostrando a todos durante el Baño (como hoy).**
+5. **Reportes de vacíos durante «Baño».** No se pueden marcar como revisados mientras estás en «Baño». **Decidido: está bien así; se marcan como revisados después de «Ya volví».**
+6. **Copiar el proyecto.** Hoy está solo en mi computadora. **Decidido: copiar el proyecto al NAS Synology de Felipe. Ruta de copia pendiente.**
+7. **Subir a GitHub.** **Decidido: no se sube a GitHub por ahora. El único destino es el NAS Synology de Felipe.**

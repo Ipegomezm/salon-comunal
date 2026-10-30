@@ -196,6 +196,12 @@ Ideas para probar en la página:
 - Usa «Mandar a trabajar solo» y después «Pedir que vuelva»: el agente cuenta su resultado.
 - Mira los recuadros arriba de la conversación: amarillo que respira = pide la palabra; ondas = está hablando.
 
+## Dónde se guarda el proyecto
+
+- **No se sube a GitHub por ahora** (decidido por Felipe). El único destino es el **NAS Synology de Felipe**.
+- La copia al NAS espera hasta que el NAS se pueda alcanzar. Mientras tanto, el proyecto está
+  solo en la computadora donde se trabaja.
+
 ## Arquitectura
 
 ```
