@@ -42,7 +42,7 @@ DEFAULT_AGENT_TURN_BUDGET = 6
 # «Baño»: si el organizador se aleja con la página abierta, el salón sigue hasta este límite.
 DEFAULT_BATHROOM_LIMIT_SECONDS = 1500.0   # 25 minutos
 # Aviso grande arriba en los últimos 5 minutos del «Baño» del organizador
-# (valor por defecto pendiente de que Felipe lo confirme).
+# (decidido por Felipe: se queda, encendido por defecto).
 BATHROOM_NOTICE_SECONDS = 300.0
 
 

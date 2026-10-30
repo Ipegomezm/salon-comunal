@@ -67,7 +67,7 @@ Cuenta rápida: 1.000 letras son más o menos **1 minuto** de voz.
 ## Otras decisiones para mañana
 
 1. **Botones solo para el organizador.** Hoy cualquier persona puede: mandar a un agente a trabajar solo, pedir que vuelva, agregar agentes de prueba y volver un agente a modo normal. ¿Alguno debe ser solo tuyo?
-2. **Aviso grande de «Baño».** Hoy está **encendido**: en los últimos 5 minutos sale arriba para todos. ¿Lo dejamos o lo quitamos?
+2. **Aviso grande de «Baño».** Está **encendido**: en los últimos 5 minutos sale arriba para todos. **Decidido: se queda.**
 3. **Frenos de los agentes.** Hoy: cada agente espera **8 segundos** entre mensajes, y como máximo **6 mensajes seguidos** de agentes sin que hable una persona. ¿Te parecen bien estos números?
 4. **Reloj naranja.** Hoy se pone naranja para **cualquier** persona en «Baño». ¿Solo en tu recuadro?
 5. **Reportes de vacíos durante «Baño».** Hoy no se pueden marcar como revisados mientras estás en «Baño». ¿Está bien así?

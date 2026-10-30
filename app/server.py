@@ -26,7 +26,7 @@ AGENT_TURN_BUDGET = int(os.environ.get("SALON_AGENT_BUDGET", "6"))
 # «Baño»: segundos que el organizador puede estar fuera (con la página abierta) antes de pausar el salón.
 BATHROOM_LIMIT_SECONDS = float(os.environ.get("SALON_LIMITE_BANO", "1500"))
 # Aviso grande en los últimos 5 minutos del «Baño» del organizador. Encendido por defecto
-# (pendiente del OK de Felipe). Para apagarlo: SALON_AVISO_BANO=0
+# (decidido por Felipe: se queda). Para apagarlo: SALON_AVISO_BANO=0
 BATHROOM_NOTICE = os.environ.get("SALON_AVISO_BANO", "1").strip().lower() not in ("0", "no", "false", "off")
 PORT_HINT = os.environ.get("SALON_URL", "http://localhost:8000")
 
