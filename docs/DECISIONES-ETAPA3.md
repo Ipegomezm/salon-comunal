@@ -81,4 +81,4 @@ El Camino C (pago) queda aplazado.
 4. **Reloj naranja.** Se pone naranja para **cualquier** persona en «Baño». **Decidido: se sigue mostrando a todos durante el Baño (como hoy).**
 5. **Reportes de vacíos durante «Baño».** No se pueden marcar como revisados mientras estás en «Baño». **Decidido: está bien así; se marcan como revisados después de «Ya volví».**
 6. **Copiar el proyecto.** Hoy está solo en mi computadora. **Decidido: copiar el proyecto al NAS Synology de Felipe. Ruta de copia pendiente.**
-7. **Subir a GitHub.** **Decidido: no se sube a GitHub por ahora. El único destino es el NAS Synology de Felipe.**
+7. **Subir a GitHub.** **Decidido: por ahora se puede usar GitHub mientras arreglamos el NAS. El NAS sigue siendo el destino. Sin secretos ni claves, sin Actions ni despliegues.** Más adelante Felipe decide si GitHub se queda.

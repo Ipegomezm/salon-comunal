@@ -198,9 +198,11 @@ Ideas para probar en la página:
 
 ## Dónde se guarda el proyecto
 
-- **No se sube a GitHub por ahora** (decidido por Felipe). El único destino es el **NAS Synology de Felipe**.
-- La copia al NAS espera hasta que el NAS se pueda alcanzar. Mientras tanto, el proyecto está
-  solo en la computadora donde se trabaja.
+- El destino final es el **NAS Synology de Felipe**. La copia al NAS espera hasta que el NAS
+  se pueda alcanzar.
+- Mientras arreglamos el NAS, **por ahora se puede usar GitHub**
+  (`github.com/Ipegomezm/salon-comunal`). Más adelante Felipe decide si GitHub se queda.
+- Reglas para GitHub: **sin secretos ni claves**, **sin Actions** y **sin despliegues**.
 
 ## Arquitectura
 
