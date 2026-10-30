@@ -44,29 +44,36 @@ Cuenta rápida: 1.000 letras son más o menos **1 minuto** de voz.
 - Oír y hablar con lo que ya trae el navegador.
 - **A favor:** no hay que instalar nada. Se puede probar pronto.
 - **En contra:** voces robóticas. Funciona mejor en Chrome. Si no usamos «solo en tu computadora», tu voz va a Google.
-- **Necesito saber:** ¿aceptas que la voz vaya a Google, o solo en tu computadora?
+- **(a) Decidido: solo en tu computadora, nunca a Google.** Si tu navegador no puede hacerlo
+  solo en tu computadora, la voz no se usa y sale un aviso en español. Nunca se manda tu audio a internet.
 
 ### Camino B: todo en tu computadora (gratis, mejor calidad)
 
 - Oír con **faster-whisper**. Hablar con **Kokoro** o **Piper**. Audio con **WebRTC**.
 - **A favor:** privado. Nada sale de tu computadora. Cada agente con una voz distinta. Sin costo.
 - **En contra:** más trabajo. Hay que bajar modelos grandes (cientos de MB). Necesita una computadora con fuerza. Puede tardar un poco en responder.
-- **Necesito saber:** ¿qué computadora vas a usar? ¿Tiene tarjeta gráfica?
+- **Nota:** la pregunta de la tarjeta gráfica solo importa más adelante, si pasamos al Camino B.
+  Ahora no es una decisión abierta.
 
 ### Camino C: mezcla con un servicio pago (mejor calidad, cuesta dinero)
 
 - Empezar con A o B. Después, darle a un agente una voz paga (por ejemplo, ElevenLabs).
 - **A favor:** voces muy naturales. Poca demora.
 - **En contra:** cuesta dinero cada minuto. Necesita una cuenta y una clave. Tu audio sale a otra empresa.
-- **Necesito saber:** tu **OK**, cuál servicio y un límite de gasto al mes.
+- **Aplazado: se revisa solo cuando toque pagar.** No se usan servicios pagos, cuentas ni claves.
 
 **Mi sugerencia:** empezar con **A** para oír y ver que todo funciona. Luego pasar a **B**. Dejar **C** para cuando quieras una voz especial.
+
+**Estado de la voz: decidido.** El prototipo usa el Camino A, solo en tu computadora, nunca a Google.
+El Camino C (pago) queda aplazado.
 
 ---
 
 ## Otras decisiones para mañana
 
-1. **Botones solo para el organizador.** Hoy cualquier persona puede: mandar a un agente a trabajar solo, pedir que vuelva, agregar agentes de prueba y volver un agente a modo normal. ¿Alguno debe ser solo tuyo?
+1. **Botones solo para el organizador.** Hoy cualquier persona puede: mandar a un agente a trabajar solo, pedir que vuelva, agregar agentes de prueba y volver un agente a modo normal.
+   - **Agentes que trabajan solos. Decidido:** cuando un agente termina su tarea, vuelve solo al salón y avisa que volvió. Y Felipe puede llamarlo cuando quiera para ver dónde va. *(Todavía no está hecho.)*
+   - **Sigue abierto:** qué botones son solo del organizador. Por ahora no se cambia ningún botón.
 2. **Aviso grande de «Baño».** Está **encendido**: en los últimos 5 minutos sale arriba para todos. **Decidido: se queda.**
 3. **Frenos de los agentes.** Hoy: cada agente espera **8 segundos** entre mensajes, y como máximo **6 mensajes seguidos** de agentes sin que hable una persona. ¿Te parecen bien estos números?
 4. **Reloj naranja.** Hoy se pone naranja para **cualquier** persona en «Baño». ¿Solo en tu recuadro?
